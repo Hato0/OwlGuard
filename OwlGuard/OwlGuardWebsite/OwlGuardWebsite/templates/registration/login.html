@@ -1,0 +1,82 @@
+{% extends 'base_auth.html' %}
+{% load static %}
+{% block title %}Login{% endblock title %}
+{% block content %}
+
+
+<div class="container">
+    <div class="row">
+        <div class="col-lg-3 col-md-2"></div>
+        <div class="col-lg-6 col-md-8 login-box">
+            <div class="col-lg-12 login-key">
+                {% if form.errors %}
+                <img
+                    class="logo"
+                    src="{% static 'img/logo.png' %}"
+                    alt="OwlGuard" 
+                    style="width:150px;height:150px;"
+                />
+                {% else %}
+                <img
+                    class="logo"
+                    src="{% static 'img/logo.png' %}"
+                    alt="OwlGuard" 
+                    style="width:150px;height:150px;"
+                />
+                {% endif %}
+            </div>
+            <div class="col-lg-12 login-title">
+                Login
+            </div>
+
+            <div class="col-lg-12 login-form">
+                <div class="col-lg-12 login-form">
+                    <form method="post">
+                        <div class="form-group">
+                            <label class="form-control-label">USERNAME</label>
+                            <input 
+                                type="text"
+                                name="username"
+                                id="username"
+                                class="form-control form-control-sm"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-control-label">PASSWORD</label>
+                            <input 
+                                type="password"
+                                name="password"
+                                id="password"
+                                class="form-control form-control-sm"
+                            />
+                            <label class="form-control-label float-end" onclick="modifyPasswordVisibility('password')">SHOW</label>
+                        </div>
+                        <div class="col-lg-12 loginbttm">
+                            <div class="col-lg-12 login-btm login-text">
+                                {% if form.errors %}
+                                    <svg class="bi" fill="#ff5e00" style="height: 30px; width: 30px; margin-right: 10px"><use xlink:href="#info-circle"/></svg><label class="form-control-label">Please verify the association username/password.</label>
+                                {% endif %}
+                            </div>
+                            <div class="login-btm login-button">
+                                <input
+                            type="submit"
+                            value="Login"
+                            class="btn btn-outline-primary btn-block"
+                            />
+                            </div>
+                        </div>
+                        {% csrf_token %}
+                    </form>
+                </div>
+            </div>
+            <div class="col-lg-12 col-md-2">
+                    <label class="form-control-label float-end">Don't have an account ? <a href="/register">Register</a></label>
+                    <br>
+                    <label class="form-control-label float-end">Forgotten your password ? <a href="/password_reset">Reset it</a></label>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'js/register.js' %}"></script>
+{% endblock content %}

@@ -1,0 +1,6 @@
+venv
+OwlGuard/OwlGuardWebsite/OwlGuardWebsite/settings.py
+OwlGuard/OwlGuardWebsite/OwlGuardWebsite/__pycache__
+OwlGuard/OwlGuardWebsite/OwlGuardWebsite/sent_emails
+OwlGuard/OwlGuardWebsite/owlguard/__pycache__
+OwlGuard/OwlGuardWebsite/authentication/__pycache__
