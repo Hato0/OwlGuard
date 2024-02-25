@@ -1,4 +1,34 @@
 {% extends "base.html" %}
+{% block title %}Rules{% endblock title %}
 {% block content %}
-<h1>Add Rule</h1>
+<div class="header">
+    <div class="left">
+        <h1>Rules</h1>
+        <ul class="breadcrumb">
+            <li><a href="#">
+                    Rules
+                </a></li>
+            <p class="menu-separator">/</p>
+            <li><a href="#" class="active">Import</a></li>
+        </ul>
+    </div>
+</div>
+<div class="container center">
+    <div class="upload-box">
+        <h2 class="upload-heading">Upload YAML File(s)</h2>
+        <form method="post" enctype="multipart/form-data" class="upload-form">
+            {% csrf_token %}
+            <div class="form-input-upload">
+                <label for="yaml_files" class="upload-btn">
+                    <i class='bx bx-cloud-upload'></i>
+                </label>
+                <input type="file" name="yaml_files" id="yaml_files" multiple class="file-input" onchange="updateFileCount(this)">
+                <div class="file-count-wrapper">
+                    <span id="file-count">0 files selected</span>
+                </div>
+            </div>
+            <button type="submit" class="submit-btn">Upload</button>
+        </form>
+    </div>
+</div>
 {% endblock content %}

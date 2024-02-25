@@ -1,74 +1,138 @@
-(() => {
-    'use strict'
-  
-    const getStoredTheme = () => localStorage.getItem('theme')
-    const setStoredTheme = theme => localStorage.setItem('theme', theme)
-  
-    const getPreferredTheme = () => {
-      const storedTheme = getStoredTheme()
-      if (storedTheme) {
-        return storedTheme
-      }
-  
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+const menuBar = document.querySelector('.content nav .bx.bx-menu');
+const sideBar = document.querySelector('.sidebar');
+
+menuBar.addEventListener('click', () => {
+    sideBar.classList.toggle('close');
+});
+
+const searchBtn = document.querySelector('.content nav form .form-input button');
+const searchBtnIcon = document.querySelector('.content nav form .form-input button .bx');
+const searchForm = document.querySelector('.content nav form');
+
+searchBtn.addEventListener('click', function (e) {
+    if (window.innerWidth < 576) {
+        e.preventDefault;
+        searchForm.classList.toggle('show');
+        if (searchForm.classList.contains('show')) {
+            searchBtnIcon.classList.replace('bx-search', 'bx-x');
+        } else {
+            searchBtnIcon.classList.replace('bx-x', 'bx-search');
+        }
     }
-  
-    const setTheme = theme => {
-      if (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        document.documentElement.setAttribute('data-bs-theme', 'dark')
-      } else {
-        document.documentElement.setAttribute('data-bs-theme', theme)
-      }
+});
+
+window.addEventListener('resize', () => {
+    if (window.innerWidth < 768) {
+        sideBar.classList.add('close');
+    } else {
+        sideBar.classList.remove('close');
     }
-  
-    setTheme(getPreferredTheme())
-  
-    const showActiveTheme = (theme, focus = false) => {
-      const themeSwitcher = document.querySelector('#bd-theme')
-  
-      if (!themeSwitcher) {
-        return
-      }
-  
-      const themeSwitcherText = document.querySelector('#bd-theme-text')
-      const activeThemeIcon = document.querySelector('.theme-icon-active use')
-      const btnToActive = document.querySelector(`[data-bs-theme-value="${theme}"]`)
-      const svgOfActiveBtn = btnToActive.querySelector('svg use').getAttribute('href')
-  
-      document.querySelectorAll('[data-bs-theme-value]').forEach(element => {
-        element.classList.remove('active')
-        element.setAttribute('aria-pressed', 'false')
-      })
-  
-      btnToActive.classList.add('active')
-      btnToActive.setAttribute('aria-pressed', 'true')
-      activeThemeIcon.setAttribute('href', svgOfActiveBtn)
-      const themeSwitcherLabel = `${themeSwitcherText.textContent} (${btnToActive.dataset.bsThemeValue})`
-      themeSwitcher.setAttribute('aria-label', themeSwitcherLabel)
-  
-      if (focus) {
-        themeSwitcher.focus()
-      }
+    if (window.innerWidth > 576) {
+        searchBtnIcon.classList.replace('bx-x', 'bx-search');
+        searchForm.classList.remove('show');
     }
-  
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-      const storedTheme = getStoredTheme()
-      if (storedTheme !== 'light' && storedTheme !== 'dark') {
-        setTheme(getPreferredTheme())
-      }
-    })
-  
-    window.addEventListener('DOMContentLoaded', () => {
-      showActiveTheme(getPreferredTheme())
-  
-      document.querySelectorAll('[data-bs-theme-value]')
-        .forEach(toggle => {
-          toggle.addEventListener('click', () => {
-            const theme = toggle.getAttribute('data-bs-theme-value')
-            setStoredTheme(theme)
-            setTheme(theme)
-            showActiveTheme(theme, true)
-          })
-        })
-    })
-  })()
+});
+
+function rowClicked(ruleId) {
+// Redirect to a new page with the rule ID
+    window.location.href = '/rules/' + ruleId;
+}
+
+function updateFileCount(input) {
+    var count = input.files.length;
+    var fileCountSpan = document.getElementById("file-count");
+    fileCountSpan.textContent = count + (count === 1 ? " file selected" : " files selected");
+}
+
+var selectedTags = [];
+
+function filterByTag(tag) {
+    if (!selectedTags.includes(tag)) {
+        if (selectedTags.length < 3){
+            selectedTags.push(tag);
+            updateFilterDisplay();
+            filterRows();
+        }
+        else {
+            //TODO: alert popup saying 'limited to 3tags'
+        }
+    }
+}
+
+function updateFilterDisplay() {
+    var filterInfoDiv = document.querySelector(".filter-info");
+    var currentFilterSpan = document.getElementById("currentFilter");
+    if (!currentFilterSpan) {
+        currentFilterSpan = document.createElement("span");
+        currentFilterSpan.id = "currentFilter";
+        filterInfoDiv.appendChild(currentFilterSpan);
+        filterInfoDiv.insertBefore(document.createTextNode(""), currentFilterSpan);
+    } else {
+        currentFilterSpan.innerHTML = "";
+    }
+
+    var maxTags = Math.min(selectedTags.length, 3);
+    for (var i = 0; i < maxTags; i++) {
+        var tagAnchor = document.createElement("a");
+        tagAnchor.className = "tag";
+        tagAnchor.textContent = selectedTags[i];
+        tagAnchor.addEventListener("click", (function(index) {
+            return function(event) {
+                event.preventDefault();
+                removeFilter(selectedTags[index]);
+            };
+        })(i));
+        currentFilterSpan.appendChild(tagAnchor);
+    }
+}
+
+function filterRows() {
+    var rows = document.getElementById("rulesTable").getElementsByTagName("tr");
+    for (var i = 0; i < rows.length; i++) {
+        if (!rows[i].classList.contains("no-rule-info")) {
+            var tags = Array.from(rows[i].getElementsByClassName("tag")).map(tag => tag.textContent.trim());
+            var displayRow = true; 
+
+            for (var k = 0; k < selectedTags.length; k++) {
+                if (!tags.includes(selectedTags[k])) {
+                    displayRow = false;
+                    break;
+                }
+            }
+            rows[i].style.display = displayRow ? "" : "none";
+        }
+    }
+}
+
+function removeFilter(tag) {
+    var index = selectedTags.indexOf(tag);
+    if (index !== -1) {
+        selectedTags.splice(index, 1);
+    }
+    updateFilterDisplay();
+    filterRows();
+}
+
+function toggleStatus(button) {
+    button.classList.toggle('active');
+    var input = button.parentElement.querySelector('input[type="hidden"]');
+    if (button.classList.contains('active')) {
+        input.value = 'on';
+    } else {
+        input.value = 'off';
+    }
+}
+
+function toggleTooltip(fieldName) {
+    var tooltip = document.getElementById(fieldName + "-tooltip");
+    tooltip.classList.toggle("show");
+}
+
+function hideTooltip(fieldName) {
+    var tooltip = document.getElementById(fieldName + "-tooltip");
+    tooltip.classList.remove("show");
+}
+
+$(document).ready(function() {
+    $('.multiselect').select2();
+});

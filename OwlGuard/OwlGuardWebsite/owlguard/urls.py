@@ -5,5 +5,8 @@ from . import views
 
 urlpatterns = [
     path('', views.index, name="owlguard"),
-    path('add-rule', views.add_rule, name="add-rule")
+    path('rules/create', views.add_rule, name="createRule"),
+    path('rules', views.rules, name="rules"),
+    path('rules/<int:id>', views.rulesById, name="rulesById"),
+    path('rules/<int:id>/edit', views.edit_rule, name="editRule")
 ]

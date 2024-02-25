@@ -1,23 +1,18 @@
-<header class="navbar sticky-top bg-dark flex-md-nowrap p-0 shadow" data-bs-theme="dark">
-    <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6 text-white" href="#">OwlGuard</a>
-  
-    <ul class="navbar-nav flex-row d-md-none">
-      <li class="nav-item text-nowrap">
-        <button class="nav-link px-3 text-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSearch" aria-controls="navbarSearch" aria-expanded="false" aria-label="Toggle search">
-          <svg class="bi"><use xlink:href="#search"/></svg>
-        </button>
-      </li>
-      <li class="nav-item text-nowrap">
-        <button class="nav-link px-3 text-white" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
-          <svg class="bi"><use xlink:href="#list"/></svg>
-        </button>
-      </li>
-    </ul>
-    <form method="post" action="{% url 'logout' %}">
-      {% csrf_token %}
-      <button type="submit">logout</button>
-  </form>
-    <div id="navbarSearch" class="navbar-search w-100 collapse">
-      <input class="form-control w-100 rounded-0 border-0" type="text" placeholder="Search" aria-label="Search">
-    </div>
-  </header>
+{% load static %}
+<nav>
+    <i class='bx bx-menu'></i>
+    <form action="#">
+        <div class="form-input">
+            <input type="search" placeholder="Search...">
+            <button class="search-btn" type="submit"><i class='bx bx-search'></i></button>
+        </div>
+    </form>
+
+    <a href="#" class="notif">
+        <i class='bx bx-bell'></i>
+        <span class="count">{{ notificationUser|length }}</span>
+    </a>
+    <a href="#" class="profile">
+        <img src="{% static 'img/logo2.png'%}"> 
+    </a>
+</nav>  

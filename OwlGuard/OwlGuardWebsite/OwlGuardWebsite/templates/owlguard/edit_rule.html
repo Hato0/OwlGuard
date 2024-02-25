@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Rules{% endblock title %}
+{% block head %}<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+{% endblock head %}
+{% block content %}
+<div class="header">
+    <div class="left">
+        <h1>Rules</h1>
+        <ul class="breadcrumb">
+            <li><a href="#">
+                    Rules
+                </a></li>
+            <p class="menu-separator">/</p>
+            <li><a href="#" class="active">Edit</a></li>
+        </ul>
+    </div>
+</div>
+<div class="container center">
+    <div class="model-form">
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+                {% if field.name == 'status' %}
+                <p>
+                    {{ field.label_tag }}
+                    {{ field.errors }}
+                    <input type="checkbox" name="{{ field.name }}" id="{{ field.id_for_label }}" class="id_status" {% if field.value %}checked{% endif %}>
+                    <label for="{{ field.id_for_label }}"></label>
+                </p>
+                {% elif field.name == 'tags' or field.name == 'logsource_id' %}
+                <div class="fieldWrapper">
+                    {{ field.label_tag }}:
+                    {{ field.errors }}
+                    {% if field.field.widget.attrs.placeholder %}
+                    <span class="info-btn" onmouseover="toggleTooltip('{{ field.name }}')" onmouseout="hideTooltip('{{ field.name }}')"><i class='bx bx-info-circle'></i></span>
+                    <div id="{{ field.name }}-tooltip" class="tooltip">
+                        {{ field.field.widget.attrs.placeholder }}
+                    </div>
+                    {% endif %}
+                    <select name="{{ field.name }}[]" id="{{ field.id_for_label }}" class="multiselect" multiple>
+                        {% for choice in field.field.choices %}
+                        <option value="{{ choice.0 }}" {% if choice.0 in field.value %}selected{% endif %}>{{ choice.1 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% else %}
+                <div class="fieldWrapper">
+                    {{ field.label_tag }}: 
+                    {{ field.errors }}
+                    {% if field.field.widget.attrs.placeholder %}
+                    <span class="info-btn" onmouseover="toggleTooltip('{{ field.name }}')" onmouseout="hideTooltip('{{ field.name }}')"><i class='bx bx-info-circle'></i></span>
+                    <div id="{{ field.name }}-tooltip" class="tooltip">
+                        {{ field.field.widget.attrs.placeholder }}
+                    </div>
+                    {% endif %}
+                    {{ field }}
+                </div>
+                {% endif %}
+            {% endfor %}
+            <button type="submit" class="submit-btn">Save</button>
+        <form>
+    </div>
+</div>
+{% endblock content %}
+{% block script %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+{% endblock script%}

@@ -1,16 +1,126 @@
 {% extends "base.html" %}
-
+{% block title %}Home{% endblock title %}
 {% block content %}
-<h1> Rule List </h1>
-
-<ul class="list-group">
-    <li class="list-group-item"> Rule1</li>
-    <li class="list-group-item"> Rule1</li>
-    <li class="list-group-item"> Rule1</li>
-    <li class="list-group-item"> Rule1</li>
-    <li class="list-group-item"> Rule1</li>
-    <li class="list-group-item"> Rule1</li>
-    <li class="list-group-item"> Rule1</li>
-    <li class="list-group-item"> Rule1</li>
+<div class="header">
+    <div class="left">
+        <h1>Dasboard</h1>
+        <ul class="breadcrumb">
+            <li><a href="#">
+                    OwlGuard
+                </a></li>
+            <p class="menu-separator">/</p>
+            <li><a href="#" class="active">Default</a></li>
+        </ul>
+    </div>
+</div>
+<ul class="insights">
+    <li>
+        <i class='bx bx-check-shield'></i>
+        <span class="info">
+            <h3>
+                {{ cntRuleEnabled }}
+            </h3>
+            <p>Rules Enabled</p>
+        </span>
+    </li>
+    <li>
+        <i class='bx bx-shield-x'></i>
+        <span class="info">
+            <h3>
+                {{ cntRuleDisabled }}
+            </h3>
+            <p>Rules Disabled</p>
+        </span>
+    </li>
+    <li>
+        <i class='bx bx-target-lock'></i>
+        <span class="info">
+            <h3>
+                {{ cntTestingScript }}
+            </h3>
+            <p>Offensives Scripts</p>
+        </span>
+    </li>
+    <li>
+        <i class='bx bx-git-compare'></i>
+        <span class="info">
+            <h3>
+                {{ cntConnector }}
+            </h3>
+            <p>Connectors</p>
+        </span>
+    </li>
 </ul>
+
+<div class="bottom-data">
+    <div class="documentations">
+        <div class="header">
+            <i class='bx bx-book-open'></i>
+            <h3>Undocumented rules</h3>
+            <i class='bx bx-filter'></i>
+            <i class='bx bx-search'></i>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Rule</th>
+                    <th>Creation Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody><!-- completed pending process-->
+                {% if undocumentedRule|length > 0 %}
+                {% for rule in undocumentedRule %}
+                <tr>
+                    <td>
+                        <p>{{ rule.title }}</p>
+                    </td>
+                    <td>{{ rule.import_at }}</td>
+                    <td>{% if rule.status == 0 %}<span class="status process">Disable{% else %}<span class="status completed">Enable{% endif %}</span></td> 
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="3" style="text-align: center; font-weight: bold; display: table-cell;vertical-align: middle;"><i class='bx bx-info-circle' style="vertical-align: middle; padding-right:5px;"></i>Good job, everything is documented !</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="reminders">
+        <div class="header">
+            <i class='bx bx-note'></i>
+            <h3>Reminders</h3>
+            <i class='bx bx-filter'></i>
+            <i class='bx bx-plus'></i>
+        </div>
+        <ul class="task-list"><!-- completed not-completed -->
+            {% if taskReminders|length > 0 %}
+            {% for item in taskReminders %}
+            {% if item.due_at < today %}
+            <li class="not-completed">
+                <div class="task-title">
+                    <i class='bx bx-x-circle'></i>
+                    <p>{{ item.title }}</p>
+                </div>
+                <i class='bx bx-dots-vertical-rounded'></i>
+            </li>
+            {% else %}
+            <li class="completed">
+                <div class="task-title">
+                    <i class='bx bx-check-circle'></i>
+                    <p>{{ item.title }}</p>
+                </div>
+                <i class='bx bx-dots-vertical-rounded'></i>
+            </li>
+            {% endif %}
+            {% endfor %}
+            {% else %}
+            <p style="text-align: center; font-weight: bold; vertical-align: middle"><i class='bx bx-info-circle' style="; vertical-align: middle; padding-right:5px;"></i>All your tasks have been completed !</p>
+            {% endif %}
+        </ul>
+    </div>
+
+</div>
 {% endblock content %}

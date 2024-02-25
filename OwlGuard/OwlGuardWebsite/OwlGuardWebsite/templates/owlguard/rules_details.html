@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Rules{% endblock title %}
+{% block content %}
+<div class="header">
+    <div class="left">
+        <h1>Rules</h1>
+        <ul class="breadcrumb">
+            <li><a href="#">Rules</a></li>
+            <li class="menu-separator">/</li>
+            <li><a href="#" class="active">Details</a></li>
+        </ul>
+    </div>
+    <a href="{% url 'editRule' rule_details.id %}" class="report">
+        <i class='bx bx-edit'></i>
+        <span>Edit</span>
+    </a>
+</div>
+<div class="container center" style='margin-top: 20px'>
+    <ul class="rule-details">
+        <li>
+            <h3>{{ rule_details.title }}</h3>
+            <p>Status:<span class="status {% if rule_details.status %}completed{% else %}disable{% endif %}">{% if rule_details.status %} Active {% else %} Inactive {% endif %}</span></p>
+            <p>Description: <span>{{ rule_details.description }}</span></p>
+            <div class="detection-display">
+                <p>Detection:</p>
+                {% for key, value in rule_details.detection.items %}
+                    {% if key != "condition" %} 
+                        <ul>
+                            <li>{{key}}:<li>
+                                <ul>
+                                {% for keyChild, valuesChild in value.items %}
+                                    <li>{{ keyChild }}: {{ valuesChild }}</li>
+                                {% endfor %}
+                                </ul>
+                        </ul>
+                    {% endif %}
+                {% endfor %}
+                <ul>
+                    <li>condition: {{rule_details.detection.condition}}</li>
+                </ul>
+            </div>
+            <p>References: 
+                <ul>
+                    {% for reference in rule_details.references %}
+                        <li><a href={{ reference }} target="_blank">{{ reference }}</a></li>
+                    {% endfor %}
+                </ul>
+            </p>
+            <p>Author: <span>{{ rule_details.author }}</span></p>
+            <p>Imported: <span>{{ rule_details.import_at }}</span></p>
+            <p>Creation: <span>{{ rule_details.creation_date }}</span></p>
+            <p>Modified: <span>{% if rule_details.modified %}{{ rule_details.modified }}{% else %}Never modified{% endif %}</span></p>
+            <p>Modified by: <span>{% if rule_details.modified_by %}{{ rule_details.modified_by }}{% else %}Never modified{% endif %}</span></p>
+            <p>Tags:
+                <ul>
+                    {% for tag in rule_details.tags.all %}
+                        <li>{{ tag }}</li>
+                    {% endfor %}
+                </ul>
+            </p>
+            <p>Log Sources:
+                {% if rule_details.logsource_id.all %}
+                <ul>
+                    {% for logsource in rule_details.logsource_id.all %}
+                        <li>{{ logsource }}</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <span>According to our data no log source as been specified..</span>
+                {% endif %}
+            </p>
+            <p>Testing Scripts:
+                {% if rule_details.testing_script_id.all %}
+                <ul>
+                    {% for script in rule_details.testing_script_id.all %}
+                        <li>{{ script }}</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <span>This rule is not associated with any testing script..</span>
+                {% endif %}
+            </p>
+            <p>Investigation Processes:
+                {% if rule_details.investigation_process_id.all %}
+                <ul>
+                    {% for process in rule_details.investigation_process_id.all %}
+                        <li>{{ process }}</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <span>No investigation process found, will be hard for juniors to investigate it..</span>
+                {% endif %}
+            </p>
+        </li>
+    </ul>
+</div>
+{% endblock content %}
