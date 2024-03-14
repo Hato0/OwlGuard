@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Rules{% endblock title %}
 {% block head %}<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
 {% endblock head %}
@@ -64,4 +65,5 @@
 {% endblock content %}
 {% block script %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+<script src="{% static 'js/select2C.js' %}"></script>
 {% endblock script%}

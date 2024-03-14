@@ -133,6 +133,22 @@ function hideTooltip(fieldName) {
     tooltip.classList.remove("show");
 }
 
-$(document).ready(function() {
-    $('.multiselect').select2();
-});
+var acc = document.getElementsByClassName("closebtn");
+var i;
+
+for (i = 0; i < acc.length; i++) {
+    acc[i].onclick = function(){
+        var div = this.parentElement;
+        div.style.opacity = "0";
+        setTimeout(function(){ div.style.display = "none"; }, 600);
+    }
+}
+
+function createMessageElement(messageText, messageTags) {
+    var newDiv = document.createElement("div");
+    newDiv.classList.add("alert");
+    newDiv.classList.add(messageTags);
+    newDiv.appendChild(document.createTextNode(messageText));
+    var messageContainer = document.getElementById("message-container");
+    messageContainer.appendChild(newDiv);
+}

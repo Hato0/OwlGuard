@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Connectors{% endblock title %}
+{% block content %}
+<div class="header">
+    <div class="left">
+        <h1>Connectors</h1>
+        <ul class="breadcrumb">
+            <li><a href="#">Connectors</a></li>
+            <li class="menu-separator">/</li>
+            <li><a href="#" class="active">Details</a></li>
+        </ul>
+    </div>
+    <a href="{% url 'editConnector' connector_details.id %}" class="report">
+        <i class='bx bx-edit'></i>
+        <span>Edit</span>
+    </a>
+</div>
+<div class="container center" style='margin-top: 20px'>
+    <ul class="rule-details">
+        <li>
+            <h3>{{ connector_details.title }}</h3>
+            <p>Type: <span>{{ connector_details.type }}<img src="{% static 'img/'|add:connector_details.type|add:'.png' %}"></span></p>
+            <p>Status:<span class="status {% if connector_details.status %}completed{% else %}disable{% endif %}">{% if connector_details.status %} Active {% else %} Inactive {% endif %}</span></p>
+            <p>URL: <span>{{ connector_details.url }}</span></p>
+            <p>SSL Verification:<span><span class="status {% if connector_details.sslVerification %}completed{% else %}disable{% endif %}">{% if connector_details.sslVerification %} Enable {% else %} Disable {% endif %}</span></p>
+            <p>api_client: <span>{{ connector_details.api_client }}</span></p>
+            <p>api_key: <span>{{ connector_details.api_key }}</span></p>
+            <div style="display: ruby">
+                <button type="submit" class="submit-btn" onclick='testCon()' style='margin-top:40px;font-size: 16px'>Test Connection</button>
+                <form id="delete-form" method="POST" action="{% url 'delConnectorById' connector_details.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="submit-btn" style="margin-top:40px;font-size: 16px; background-color: var(--danger)">Delete</button>
+                </form>                        
+            </div>
+        </li>
+    </ul>
+</div>
+{% endblock content %}

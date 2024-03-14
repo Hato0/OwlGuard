@@ -9,7 +9,8 @@
         <li {% if '/rules' in request.path %} class="active"{% endif %}><a href="{% url 'rules' %}"><i class='bx bx-shield'></i>Rule</a></li>
         <li><a href="#"><i class='bx bx-book-bookmark'></i>Documentation</a></li>
         <li><a href="#"><i class='bx bx-target-lock'></i>Offensive Script</a></li>
-        <li><a href="#"><i class='bx bx-git-compare'></i>Connector</a></li>
+        <li {% if '/connectors' in request.path %} class="active"{% endif %}><a href="{% url 'connectors' %}"><i class='bx bx-git-compare'></i>Connector</a></li>
+
         <li><a href="#"><i class='bx bx-cog'></i>Settings</a></li>
     </ul>
     <ul class="side-menu">

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load static%}
+{% block title %}Connectors{% endblock title %}
+{% block content %}
+<div class="header">
+    <div class="left">
+        <h1>Connectors</h1>
+        <ul class="breadcrumb">
+            <li><a href="#">Connectors</a></li>
+            <li class="menu-separator">/</li>
+            <li><a href="#" class="active">Dashboard</a></li>
+        </ul>
+    </div>
+</div>
+<div class="bottom-data">
+    {% for connector in extractedConnectorInfo %}
+    <div class="documentations connectors-default defined" style="box-shadow: {% if connector.status %}var(--success){% else %}var(--light-danger){% endif %} 0px 25px 60px -12px inset, {% if connector.status %}var(--success){% else %}var(--light-danger){% endif %} 0px 18px 36px -18px inset;">
+        <div>
+            <a href={% url 'connectorById' connector.id %}>
+            <h2>{{ connector.title }}</h2>
+            <img src="{% static 'img/'|add:connector.type|add:'.png' %}">
+            <p>{{ connector.url }}</p>
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+    <div class="documentations connectors-default">
+        <div>
+            <h2>Add a connector</h2>
+            <a href={% url 'createConnector' %}><i class='bx bx-plus-circle'></i></a><br>
+            <p>Currently available: Splunk</p>
+        </div>
+    </div>
+</div>
+{% endblock content %}

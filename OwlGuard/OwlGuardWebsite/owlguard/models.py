@@ -46,6 +46,14 @@ class TestingScript(models.Model):
 class Connector(models.Model):
     title = models.CharField(max_length=255)
     status = models.BooleanField()
+    type = models.CharField(max_length=255)
+    sslVerification = models.BooleanField()
+    url = models.URLField(unique=True)
+    api_client = models.CharField(max_length=255)
+    api_key= models.CharField(max_length=255)
+
+    def masked_api_key(self):
+        return f"{self.api_key[:1]}{'*' * (len(self.api_key) - 2)}{self.api_key[-1:]}"
     class Meta:
             ordering = ['id']
     

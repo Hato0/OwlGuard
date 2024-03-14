@@ -3,11 +3,14 @@ from django.contrib.auth.decorators import login_required
 from .models import Rule, TestingScript, Connector, Reminders, Tags, Logsource
 from django.db.models import Count
 from django.utils import timezone
-from .forms import UploadYAMLForm, RuleForm
+from .forms import UploadYAMLForm, RuleForm, ConnectorForm
 from datetime import datetime
-import yaml
+from django.contrib import messages
+import yaml, time
+import splunklib.client as client
+import splunklib.results as results
 
-# Create your views here.
+# Rules views
 @login_required
 def index(request):
     current_user = request.user
@@ -61,7 +64,8 @@ def rulesById(request, id):
     rule = get_object_or_404(Rule, pk=id)
     rule.import_at=rule.import_at.strftime("%b. %d, %Y")
     rule.creation_date=rule.creation_date.strftime("%b. %d, %Y")
-    rule.modified=rule.modified.strftime("%b. %d, %Y")
+    if rule.modified:
+        rule.modified=rule.modified.strftime("%b. %d, %Y")
     return render(request, 'owlguard/rules_details.html', {'rule_details': rule})
 
 @login_required
@@ -141,3 +145,106 @@ def edit_rule(request, id):
     else:
         form = RuleForm(instance=rule)
     return render(request, 'owlguard/edit_rule.html', {'form': form})
+
+# Connector views
+
+@login_required
+def connectors(request):
+    connectorAll = Connector.objects.all()
+    extractedConnectorInfo = []
+    for item in connectorAll:
+        extractedConnectorInfo.append({
+            'id': item.id,
+            'title': item.title,
+            'status': item.status,
+            'type': item.type,
+            'sslVerification': item.sslVerification,
+            'url': item.url,
+            'api_client': item.api_client
+        })
+    templateArgs = {"extractedConnectorInfo": extractedConnectorInfo}
+    return render(request, 'owlguard/connectors.html', templateArgs)
+
+@login_required
+def add_connector(request):
+    if request.method == 'POST':
+        form = ConnectorForm(request.POST)
+        if form.is_valid():
+            connectorInstance = form.save(commit=False)
+            testResult = testConnection(connectorInstance)
+            if testResult == True:
+                connectorInstance.save()
+                initialization = initiatedConnector(connectorInstance)
+                if initialization:
+                    return redirect('connectors')
+                else:
+                    messages.error(request, f"Error during initialization. Please check your settings: {testResult}")
+            else:
+                messages.error(request, f"Connection test failed. Please check your connection settings: {testResult}")
+    else:
+        form = ConnectorForm()
+    return render(request, 'owlguard/add_connector.html', {'form': form})
+
+@login_required
+def edit_connector(request, id):
+    connector = Connector.objects.get(id=id)
+    if request.method == 'POST':
+        form = ConnectorForm(request.POST, instance=connector)
+        if form.is_valid():
+            connectorInstance = form.save(commit=False)
+            testResult = testConnection(connectorInstance)
+            if testResult == True:
+                connectorInstance.save()
+                return redirect('connectors')
+            else:
+                messages.error(request, f"Connection test failed. Please check your connection settings: {testResult}")
+    else:
+        form = ConnectorForm(instance=connector)
+    return render(request, 'owlguard/add_connector.html', {'form': form})
+
+@login_required
+def connectorById(request, id):
+    connector = get_object_or_404(Connector, pk=id)
+    connector.api_key = connector.masked_api_key()
+    return render(request, 'owlguard/connector_details.html', {'connector_details': connector})
+
+@login_required
+def delConnectorById(request, id):
+    connector = get_object_or_404(Connector, pk=id)
+    connector.delete()
+    return redirect('connectors')  
+
+def testConnection(connectorInstance):
+    try:
+        if connectorInstance.type == "splunk":
+            if "://" in connectorInstance.url:
+                HOST = ':'.join(connectorInstance.url.split(':',2)[:2]).split('//')[1]
+                PORT = connectorInstance.url.split(':',2)[2] if len(connectorInstance.url.split(':',2)) > 2 else 8089
+            else:
+                HOST = connectorInstance.url.split(':')[0]
+                PORT = connectorInstance.url.split(':')[1] if len(connectorInstance.url.split(':')) > 1 else 8089
+
+            service = client.connect(
+            host=HOST,
+            port=PORT,
+            username=connectorInstance.api_client,
+            password=connectorInstance.api_key,
+            verify=connectorInstance.sslVerification
+            )
+
+            search_query = 'search * | head 1'
+            kwargs_search = {"exec_mode": "normal"}
+            job = service.jobs.create(search_query, **kwargs_search)
+            while not job.is_ready():
+                pass
+            reader = results.JSONResultsReader(job.results(output_mode='json'))
+            for result in reader:
+                pass
+            job.cancel()
+            return True 
+    except Exception as e:
+        return e
+    
+def initiatedConnector(connectorInstance):
+    time.sleep(500)
+    return False

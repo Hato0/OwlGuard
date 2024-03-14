@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Connectors{% endblock title %}
+{% block content %}
+<div class="header">
+    <div class="left">
+        <h1>Connectors</h1>
+        <ul class="breadcrumb">
+            <li><a href="#">Connectors</a></li>
+            <li class="menu-separator">/</li>
+            <li><a href="#" class="active">Create</a></li>
+        </ul>
+    </div>
+</div>
+<div class="container center">
+    <div id="message-container">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert danger">
+                <span class="closebtn danger">×</span> 
+                <i class="fa fa-danger fa-1x"></i>
+                {{ message }}
+                {{ message.tags }}
+            </div>
+        {% endfor %}
+    {% endif %}
+    </div>
+    <div class="model-form">
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+                {% if field.name == 'status' or field.name == 'sslVerification' %}
+                <p>
+                    {{ field.label_tag }}
+                    {{ field.errors }}
+                    <input type="checkbox" name="{{ field.name }}" id="{{ field.id_for_label }}" class="id_status" {% if field.value %}checked{% endif %}>
+                    <label for="{{ field.id_for_label }}"></label>
+                </p>
+                {% elif field.name == 'api_key' %}
+                <div class="form-group">
+                    {{ field.errors }}
+                    <label class="form-control-label">Api Key</label>
+                    <label style="color: var(--dark); margin-left: 20px;" class="form-control-label float-end" onclick="modifyPasswordVisibility('id_api_key')"><i class='bx bx-show'></i></label>
+                    <input 
+                        type="password"
+                        name="api_key"
+                        id="id_api_key"
+                        maxlength="255"
+                        required=""
+                        class="form-control form-control-sm"
+                    />
+                </div>
+                {% else %}
+                <div class="fieldWrapper">
+                    {{ field.label_tag }}: 
+                    {{ field.errors }}
+                    {% if field.field.widget.attrs.placeholder %}
+                    <span class="info-btn" onmouseover="toggleTooltip('{{ field.name }}')" onmouseout="hideTooltip('{{ field.name }}')"><i class='bx bx-info-circle'></i></span>
+                    <div id="{{ field.name }}-tooltip" class="tooltip">
+                        {{ field.field.widget.attrs.placeholder }}
+                    </div>
+                    {% endif %}
+                    {{ field }}
+                </div>
+                {% endif %}
+            {% endfor %}
+            <button type="submit" class="submit-btn" onclick="createMessageElement('Please wait until the initialization phase is finished. You will be automatically redirected.', 'success');">Save</button>
+        <form>
+    </div>
+</div>
+{% endblock content %}
+{% block script%}
+<script src="{% static 'js/account.js' %}"></script>
+{% endblock script %}
