@@ -21,9 +21,10 @@
         <li>
             <h3>{{ connector_details.title }}</h3>
             <p>Type: <span>{{ connector_details.type }}<img src="{% static 'img/'|add:connector_details.type|add:'.png' %}"></span></p>
-            <p>Status:<span class="status {% if connector_details.status %}completed{% else %}disable{% endif %}">{% if connector_details.status %} Active {% else %} Inactive {% endif %}</span></p>
-            <p>URL: <span>{{ connector_details.url }}</span></p>
+            <p>Status:<span class="status {% if connector_details.status %}completed{% else %}disable{% endif %}">{% if connector_details.status %} Enable {% else %} Disable {% endif %}</span></p>
+            <p>Active:<span class="status {% if connector_details.active %}completed{% else %}disable{% endif %}">{% if connector_details.active %} Active {% else %} Inactive {% endif %}</span></p>
             <p>SSL Verification:<span><span class="status {% if connector_details.sslVerification %}completed{% else %}disable{% endif %}">{% if connector_details.sslVerification %} Enable {% else %} Disable {% endif %}</span></p>
+            <p>URL: <span>{{ connector_details.url }}</span></p>
             <p>api_client: <span>{{ connector_details.api_client }}</span></p>
             <p>api_key: <span>{{ connector_details.api_key }}</span></p>
             <div style="display: ruby">

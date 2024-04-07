@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.auth.models import User
-from django.urls import reverse
+
 # Create your models here.
 class Notification(models.Model):
      title = models.CharField(max_length=255)
@@ -51,6 +51,7 @@ class Connector(models.Model):
     url = models.URLField(unique=True)
     api_client = models.CharField(max_length=255)
     api_key= models.CharField(max_length=255)
+    active = models.BooleanField()
 
     def masked_api_key(self):
         return f"{self.api_key[:1]}{'*' * (len(self.api_key) - 2)}{self.api_key[-1:]}"
@@ -80,7 +81,6 @@ class Logsource(models.Model):
 class Rule(models.Model):
     title = models.CharField(max_length=255, unique=True)
     reference_id = models.CharField(max_length=40)
-    status = models.BooleanField()
     description = models.TextField()
     references = ArrayField(models.CharField(max_length=200), blank=True)
     author = models.CharField(max_length=200)
@@ -95,8 +95,30 @@ class Rule(models.Model):
     level = models.CharField(max_length=255)
     testing_script_id = models.ManyToManyField(TestingScript)
     investigation_process_id = models.ManyToManyField(InvestigationProcess)
+    associatedConnector = models.ManyToManyField(Connector, related_name='rules', blank=True)
+    toUpdate = models.BooleanField()
+    raw = models.FileField(upload_to='owlguard/sigmaYAML/')
     class Meta:
             ordering = ['import_at']
 
     def __str__(self):
         return self.title            
+    
+class StatusByRule(models.Model):
+    rule = models.ForeignKey(Rule, on_delete=models.CASCADE)
+    connector = models.ForeignKey(Connector, on_delete=models.CASCADE)
+    status = models.BooleanField()
+    class Meta:
+            unique_together = ['rule', 'connector']
+    
+    def __str__(self):
+        return str(self.status)
+    
+class SPLByRule(models.Model):
+    rule = models.ForeignKey(Rule, on_delete=models.CASCADE)
+    spl = models.TextField()
+    class Meta:
+            unique_together = ['rule', 'spl']
+    
+    def __str__(self):
+        return str(self.spl)

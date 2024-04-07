@@ -7,7 +7,23 @@
             <button class="search-btn" type="submit"><i class='bx bx-search'></i></button>
         </div>
     </form>
-
+    <div class="fieldWrapper">
+        <form id="connectorForm" action="{% url 'handleConnectorChange' %}" method="post">
+            {% csrf_token %}
+            <select id="activeConnector" name="activeConnector" style="text-align: right;">
+                {% if currentConnector %}
+                    <option value="{{ currentConnector.title }}" selected="">{{ currentConnector.title }}</option>
+                    <option value="None">None</option>
+                {% else %}
+                    <option value="None" selected="">None</option>
+                {% endif %}
+                {% for connector in allConnector %}
+                        <option value="{{ connector.title }}">{{ connector.title }}</option>
+                {% endfor %}
+            </select>
+            <input type="hidden" name="previousPage" value="{{ request.path }}">
+        </form>
+    </div>
     <a href="#" class="notif">
         <i class='bx bx-bell'></i>
         <span class="count">{{ notificationUser|length }}</span>

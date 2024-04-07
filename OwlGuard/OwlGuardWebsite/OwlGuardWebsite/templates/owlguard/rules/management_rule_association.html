@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Rules{% endblock title %}
+{% block content %}
+<div class="header">
+    <div class="left">
+        <h1>Rules</h1>
+        <ul class="breadcrumb">
+            <li><a href="#">
+                    Rules
+                </a></li>
+            <p class="menu-separator">/</p>
+            <li><a href="#" class="active">Management - Association</a></li>
+        </ul>
+    </div>
+</div>
+<div class="bottom-data">
+    <div class="documentations">
+        <form method="post">
+            {% csrf_token %}
+            <table>
+                <thead>
+                    <tr>
+                        <th rowspan="2">Rule Title</th>
+                        <th colspan="{{ connectors|length }}">Linked</th>
+                    </tr>
+                    <tr>
+                    {% for connector in connectors %}
+                        <th>{{ connector }}</th>
+                    {% endfor %}
+                    </tr>
+                </thead>
+                <tbody style="text-align: center;">
+                    {% for form in formset %}
+                    <tr>
+                        <td><p>{{form.title.value}}</p></td>
+                        {% for associatedConnector in form.associatedConnector %}
+                        <td>
+                            <input type="checkbox" name="{{ associatedConnector.data.name }}" value="{{ associatedConnector.data.value }}" class="id_status" id="{{ associatedConnector.id_for_label }}" {% if associatedConnector.data.selected %}checked{% endif %}>
+                            <label for="{{ associatedConnector.id_for_label }}"></label>
+                        </td>
+                        {% endfor %}
+                        <td>
+                        {{ formset.management_form }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <button type="submit" class="submit-btn">Save</button>
+        </form>
+    </div>
+</div>
+{% endblock content %}

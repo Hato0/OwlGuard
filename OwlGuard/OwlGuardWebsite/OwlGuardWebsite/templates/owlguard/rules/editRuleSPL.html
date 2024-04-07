@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Rules{% endblock title %}
+{% block content %}
+<div class="header">
+    <div class="left">
+        <h1>Rules</h1>
+        <ul class="breadcrumb">
+            <li><a href="#">
+                    Rules
+                </a></li>
+            <p class="menu-separator">/</p>
+            <li><a href="#" class="active">Edit - SPL</a></li>
+        </ul>
+    </div>
+</div>
+<div class="container center">
+    <div class="model-form">
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+                {% if field.name == "rule" %}
+                <div class="fieldWrapper">
+                    {{ field.label_tag }}: 
+                    {{ field.errors }}
+                    {% for choice in field.field.choices %}
+                        {% if choice.0 == field.value %}
+                            <span style="color: var(--dark);">
+                                {{ choice.1 }}
+                            </span>
+                        {% endif %}
+                    {% endfor %}
+                    {{ form.rule.as_hidden }}
+                </div>
+                {% else %}
+                <div class="fieldWrapper">
+                    {{ field.label_tag }}: 
+                    {{ field.errors }}
+                    {% if field.field.widget.attrs.placeholder %}
+                    <span class="info-btn" onmouseover="toggleTooltip('{{ field.name }}')" onmouseout="hideTooltip('{{ field.name }}')"><i class='bx bx-info-circle'></i></span>
+                    <div id="{{ field.name }}-tooltip" class="tooltip">
+                        {{ field.field.widget.attrs.placeholder }}
+                    </div>
+                    {% endif %}
+                    {{ field }}
+                </div>
+                {% endif %}
+            {% endfor %}
+            <button type="submit" class="submit-btn">Save</button>
+        <form>
+    </div>
+</div>
+{% endblock content %}

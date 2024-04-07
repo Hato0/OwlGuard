@@ -1,12 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Rule, TestingScript, Connector, Reminders, Tags, Logsource
-from django.db.models import Count
+from .models import Rule, TestingScript, Connector, Reminders, Tags, Logsource, StatusByRule, SPLByRule
+from django.db.models import Count, Q
+from django.forms import formset_factory
 from django.utils import timezone
-from .forms import UploadYAMLForm, RuleForm, ConnectorForm
+from .forms import UploadYAMLForm, RuleForm, ConnectorForm, RuleAssociationForm, RuleStatusForm, RuleSPLForm
 from datetime import datetime
 from django.contrib import messages
-import yaml, time
+import yaml, json, uuid
+from .utils_splunk import *
 import splunklib.client as client
 import splunklib.results as results
 
@@ -14,19 +16,32 @@ import splunklib.results as results
 @login_required
 def index(request):
     current_user = request.user
-    ruleEnabled = Rule.objects.filter(status__exact="1")
-    ruleDisabled = Rule.objects.filter(status__exact="0")
-    rulesDocumentationAnnotate = Rule.objects.annotate(investigation_process_id__count=Count('investigation_process_id'))
-    testingScriptAvailable = TestingScript.objects.all()
-    taskReminder = Reminders.objects.filter(user_id__exact=current_user.id)
-    notificationUser = Reminders.objects.filter(user_id__exact=current_user.id)
-    connectorEnable = Connector.objects.all()
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        ruleEnabled = Rule.objects.filter(associatedConnector=currentConnector, statusbyrule__connector=currentConnector, statusbyrule__status=True)
+        ruleDisabled = Rule.objects.filter(associatedConnector=currentConnector).exclude(statusbyrule__connector=currentConnector, statusbyrule__status=True)        
+        rulesDocumentationAnnotate = Rule.objects.annotate(investigation_process_id__count=Count('investigation_process_id'),
+            status=Count('statusbyrule', filter=Q(statusbyrule__connector=currentConnector, statusbyrule__status=True))).filter(associatedConnector=currentConnector)
+        testingScriptAvailable = TestingScript.objects.all()
+        taskReminder = Reminders.objects.filter(user_id__exact=current_user.id)
+        notificationUser = Reminders.objects.filter(user_id__exact=current_user.id)
+        connectorEnable = Connector.objects.all()
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+    else:
+        ruleEnabled = Rule.objects.filter(statusbyrule__status=True)
+        ruleDisabled = Rule.objects.all().exclude(statusbyrule__status=True)    
+        rulesDocumentationAnnotate = Rule.objects.annotate(investigation_process_id__count=Count('investigation_process_id'),
+            status=Count('statusbyrule', filter=Q(statusbyrule__status=True)))
+        testingScriptAvailable = TestingScript.objects.all()
+        taskReminder = Reminders.objects.filter(user_id__exact=current_user.id)
+        notificationUser = Reminders.objects.filter(user_id__exact=current_user.id)
+        connectorEnable = Connector.objects.all()
+        allConnector = Connector.objects.all()
     today = timezone.now()
     undocumentedRule = []
     taskReminders = []
     for item in rulesDocumentationAnnotate:
         if item.investigation_process_id__count == 0: 
-
             undocumentedRule.append({'id': item.id, 'title': item.title, 'import_at': item.import_at.strftime("%b. %d, %Y"), 'status': item.status})
     for item in taskReminder:
         taskReminders.append({'id': item.id, 'title': item.title, 'due_at': item.due_at})
@@ -39,37 +54,72 @@ def index(request):
     templateArgs["taskReminders"] = taskReminders
     templateArgs["today"] = today
     templateArgs["notificationUser"] = notificationUser
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
     return render(request, 'owlguard/index.html', templateArgs)
 
 @login_required
 def rules(request):
-    ruleAll = Rule.objects.all().prefetch_related('tags')  # Prefetch related tags to avoid N+1 queries
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+        ruleAll = Rule.objects.filter(associatedConnector=currentConnector).prefetch_related('tags').annotate(status=Count('statusbyrule', filter=Q(statusbyrule__connector=currentConnector)))
+    else:
+        allConnector = Connector.objects.all()
+        ruleAll = Rule.objects.all().prefetch_related('tags', 'statusbyrule_set')
     extractedRuleInfo = []
     for item in ruleAll:
-        tagInfo = list(item.tags.values('id', 'title'))  # Extract tag values
+        tagInfo = list(item.tags.values('id', 'title'))
+        statusFetch = list(item.statusbyrule_set.values('id', 'connector', 'status'))
+        statusInfo = []
+        for elem in statusFetch:
+            connectorTitle = Connector.objects.filter(id=elem['connector']).first()
+            statusInfo.append({'title': connectorTitle.title, 'status': elem['status']})
         extractedRuleInfo.append({
             'id': item.id,
             'title': item.title,
             'import_at': item.import_at.strftime("%b. %d, %Y"),
-            'status': item.status,
+            'status': statusInfo,
             'author': item.author,
             'description': item.description,
-            'tags': tagInfo
+            'tags': tagInfo,
+            'toUpdate': item.toUpdate
         })
     templateArgs = {"extractedRuleInfo": extractedRuleInfo}
-    return render(request, 'owlguard/rules.html', templateArgs)
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/rules/rules.html', templateArgs)
 
 @login_required
 def rulesById(request, id):
     rule = get_object_or_404(Rule, pk=id)
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+        rule.status = StatusByRule.objects.filter(connector=currentConnector, rule=rule.id).first()
+    else:
+        allConnector = Connector.objects.all()
+        rule.status = StatusByRule.objects.filter(rule=rule.id).first()
     rule.import_at=rule.import_at.strftime("%b. %d, %Y")
     rule.creation_date=rule.creation_date.strftime("%b. %d, %Y")
     if rule.modified:
         rule.modified=rule.modified.strftime("%b. %d, %Y")
-    return render(request, 'owlguard/rules_details.html', {'rule_details': rule})
+    ruleByConnectorType = SPLByRule.objects.filter(rule=rule)
+    for SPL in ruleByConnectorType:
+        rule.spl = SPL.spl.split('\n')
+        rule.SPLid = SPL.id
+    templateArgs = {'rule_details': rule}
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/rules/rules_details.html', templateArgs)
 
 @login_required
 def add_rule(request):
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+    else:
+        allConnector = Connector.objects.all()
     if request.method == 'POST':
         form = UploadYAMLForm(request.POST, request.FILES)
         if form.is_valid():
@@ -108,7 +158,6 @@ def add_rule(request):
                 rule = Rule.objects.create(
                     title=rule_data['title'],
                     reference_id=rule_data.get('id'),
-                    status=0,
                     description=rule_data['description'],
                     references=rule_data.get('references', []),
                     author=rule_data['author'],
@@ -117,39 +166,141 @@ def add_rule(request):
                     falsepositives=', '.join(rule_data.get('falsepositives', [])),
                     level=rule_data['level'],
                 )
+                if currentConnector:
+                    status = StatusByRule.objects.create(
+                    rule=rule,
+                    connector=currentConnector,
+                    status=False)
+                    status.save()
+                    connList = get_object_or_404(Connector, pk=currentConnector.id)
+                    rule.associatedConnector.set([connList])
                 rule.tags.set(tagList)
                 rule.logsource_id.set(lsList)
+                rule.raw = yaml_file
+                rule.toUpdate = True
                 rule.save()
             return redirect('rules')
     else:
         form = UploadYAMLForm()
-    return render(request, 'owlguard/add_rule.html', {'form': form})
+    templateArgs = {'form': form}
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/rules/add_rule.html', templateArgs)
 
 
 @login_required
 def edit_rule(request, id):
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+    else:
+        allConnector = Connector.objects.all()
     rule = Rule.objects.get(id=id)
     if request.method == 'POST':
         form = RuleForm(request.POST, instance=rule)
         if form.is_valid():
+            if rule.raw:
+                with open(str(rule.raw), 'r') as file:
+                    data = yaml.safe_load(file)
+            tagToUpdate, logSourceToUpdate, references, detectionToUpdate, conditionTemp = "", "", "", "", ""
+            sortedTags = sorted(form.data.getlist('tags[]'))
+            sortedLogSource = sorted(form.data.getlist('logsource_id[]'))
+            for tag in sortedTags:
+                   tempObj = Tags.objects.filter(pk=tag).first()
+                   tagToUpdate += f"    - {tempObj.title}\n"
+            for logSource in sortedLogSource:
+                   tempObj = Logsource.objects.filter(pk=logSource).first()
+                   logSourceToUpdate += f"    {tempObj.type}: {tempObj.title}\n"
+            for reference in form.data.getlist('references'):
+                reference = reference.split(',')
+                for link in reference:
+                    references += f"    - {link.strip()}\n"
+            detectionData = json.loads(form.data.get('detection'))
+            for param, value in detectionData.items():
+                if param == "condition":
+                    conditionTemp = value
+                else:
+                    key = list(value.keys())
+                    if type(value[key[0]]) is not list:
+                        detectionToUpdate += f"    {param}:\n        {key[0]}: '{value[key[0]]}'\n"
+                    else:
+                        detectionToUpdate += f"    {param}:\n        {key[0]}:\n"
+                        for elem in value[key[0]]:
+                            detectionToUpdate += f"            - '{elem}'\n"
+            detectionToUpdate += f"    condition: {conditionTemp}\n"
+            yamlReWrite = f"""title: {form.data.get('title')}
+id: {rule.reference_id}
+status: {data['status']}
+description: {form.data.get('description')}
+references: \n    {references.strip()}
+author: {data['author']}
+date: {data['date']}
+modified: {timezone.now().isoformat().split('.')[0]}
+tags:\n    {tagToUpdate.strip()}
+logsource:\n    {logSourceToUpdate.strip()}
+detection:\n    {detectionToUpdate.strip()}
+falsepositives:\n    - {form.data.get('falsepositives')}
+level: {form.data.get('level')}"""
+            if rule.raw:
+                with open(str(rule.raw), 'w') as file:
+                    file.writelines(yamlReWrite)
             form.save()
-            print(form.data)
-            print(form.data.getlist('tags[]'))
-            print(form.data.getlist('logsource_id[]'))
             rule.modified = timezone.now().isoformat()
             rule.modified_by = request.user
             rule.tags.set(form.data.getlist('tags[]'))
             rule.logsource_id.set(form.data.getlist('logsource_id[]'))
+            rule.toUpdate = True
             rule.save()
             return redirect('rulesById', id)
     else:
         form = RuleForm(instance=rule)
-    return render(request, 'owlguard/edit_rule.html', {'form': form})
+    templateArgs = {'form': form}
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/rules/edit_rule.html', templateArgs)
+
+@login_required
+def editRuleSPL(request, id):
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+    else:
+        allConnector = Connector.objects.all()
+    rule = SPLByRule.objects.get(id=id)
+    ruleData = Rule.objects.get(id=rule.rule.id)
+    if request.method == 'POST':
+        form = RuleSPLForm(request.POST, instance=rule)
+        if form.is_valid():
+            rule.spl = request.POST.get('spl')
+            rule.rule = rule.rule
+            ruleData.modified = timezone.now().isoformat()
+            ruleData.modified_by = request.user
+            rule.toUpdate = True
+            ruleData.save()
+            rule.save()
+            return redirect('rulesById', rule.rule.id)
+    else:
+        form = RuleSPLForm(instance=rule)
+    templateArgs = {'form': form}
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/rules/editRuleSPL.html', templateArgs)
+
+@login_required
+def delRuleById(request, id):
+    rule = get_object_or_404(Rule, pk=id)
+    rule.delete()
+    return redirect('rules')  
 
 # Connector views
 
 @login_required
 def connectors(request):
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+    else:
+        allConnector = Connector.objects.all()
     connectorAll = Connector.objects.all()
     extractedConnectorInfo = []
     for item in connectorAll:
@@ -157,20 +308,30 @@ def connectors(request):
             'id': item.id,
             'title': item.title,
             'status': item.status,
+            'active': item.active,
             'type': item.type,
-            'sslVerification': item.sslVerification,
             'url': item.url,
-            'api_client': item.api_client
         })
     templateArgs = {"extractedConnectorInfo": extractedConnectorInfo}
-    return render(request, 'owlguard/connectors.html', templateArgs)
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/connectors/connectors.html', templateArgs)
 
 @login_required
 def add_connector(request):
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+    else:
+        allConnector = Connector.objects.all()
     if request.method == 'POST':
         form = ConnectorForm(request.POST)
         if form.is_valid():
             connectorInstance = form.save(commit=False)
+            currentConnector = Connector.objects.filter(active__exact="1").first()
+            if currentConnector and connectorInstance.active:
+                currentConnector.active = False
+                currentConnector.save()
             testResult = testConnection(connectorInstance)
             if testResult == True:
                 connectorInstance.save()
@@ -183,15 +344,27 @@ def add_connector(request):
                 messages.error(request, f"Connection test failed. Please check your connection settings: {testResult}")
     else:
         form = ConnectorForm()
-    return render(request, 'owlguard/add_connector.html', {'form': form})
+    templateArgs = {'form': form}
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/connectors/add_connector.html', templateArgs)
 
 @login_required
 def edit_connector(request, id):
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+    else:
+        allConnector = Connector.objects.all()
     connector = Connector.objects.get(id=id)
     if request.method == 'POST':
         form = ConnectorForm(request.POST, instance=connector)
         if form.is_valid():
             connectorInstance = form.save(commit=False)
+            currentConnector = Connector.objects.filter(active__exact="1").first()
+            if currentConnector and connectorInstance.active:
+                currentConnector.active = False
+                currentConnector.save()
             testResult = testConnection(connectorInstance)
             if testResult == True:
                 connectorInstance.save()
@@ -200,13 +373,24 @@ def edit_connector(request, id):
                 messages.error(request, f"Connection test failed. Please check your connection settings: {testResult}")
     else:
         form = ConnectorForm(instance=connector)
-    return render(request, 'owlguard/add_connector.html', {'form': form})
+    templateArgs = {'form': form}
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/connectors/add_connector.html', templateArgs)
 
 @login_required
 def connectorById(request, id):
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+    else:
+        allConnector = Connector.objects.all()
     connector = get_object_or_404(Connector, pk=id)
     connector.api_key = connector.masked_api_key()
-    return render(request, 'owlguard/connector_details.html', {'connector_details': connector})
+    templateArgs = {'connector_details': connector}
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/connectors/connector_details.html', templateArgs)
 
 @login_required
 def delConnectorById(request, id):
@@ -214,23 +398,137 @@ def delConnectorById(request, id):
     connector.delete()
     return redirect('connectors')  
 
+#Rule Status and Association Management
+@login_required
+def ruleManagementAssociation(request):
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+    else:
+        allConnector = Connector.objects.all()
+    connectors = Connector.objects.all()
+    rules = Rule.objects.all()
+    GlobalRuleAssociationFormSet = formset_factory(RuleAssociationForm, extra=0)
+    initial_data = []
+    for rule in rules:
+        data = {
+            'id': rule.id,
+            'title': rule.title,
+            'id_pk': rule.id,
+        }
+        if rule.associatedConnector.exists():
+            data['associatedConnector'] = rule.associatedConnector.all()
+        initial_data.append(data)
+    if request.method == 'POST':
+        formset = GlobalRuleAssociationFormSet(request.POST, initial=initial_data)
+        if formset.is_valid():
+            for form in formset:
+                ruleID = form.cleaned_data['id_pk']
+                associatedConnectorValues = form.cleaned_data.get('associatedConnector', [])
+                rule = Rule.objects.filter(id__exact=ruleID).get()
+                rule.associatedConnector.set(associatedConnectorValues)
+                rule.toUpdate = True
+                rule.save()
+            return redirect('rules')
+    else:
+        formset = GlobalRuleAssociationFormSet(initial=initial_data)    
+    templateArgs = {'formset': formset}
+    templateArgs['connectors'] = connectors
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/rules/management_rule_association.html', templateArgs)
+
+@login_required
+def ruleManagementStatus(request):
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+    else:
+        allConnector = Connector.objects.all()
+    connectors = Connector.objects.all()
+    rules = Rule.objects.all()
+    GlobalRuleStatusFormSet = formset_factory(RuleStatusForm, extra=0)
+    initial_data = []
+    rules = Rule.objects.all()
+    iter = 0
+    for rule in rules:
+        for connector in connectors:
+            seen = False
+            if len(rule.associatedConnector.values()):
+                for association in rule.associatedConnector.values():
+                    if str(connector) ==  association['title']:    
+                        seen = True
+                        statusData = StatusByRule.objects.filter(connector=connector, rule=rule).first()
+                        if statusData:
+                            data = {
+                                'id': statusData.id,
+                                'rule': statusData.rule,
+                                'connector': statusData.connector,
+                                'status': statusData.status
+                                }
+                        else:
+                            data = {
+                                'id': len(rules)*2+iter,
+                                'rule': rule,
+                                'connector': connector,
+                                'status': False
+                                }
+                            iter += 1
+                        initial_data.append(data)
+                if not seen:
+                    data = {
+                            'id': len(rules)*2+iter,
+                            'rule': rule,
+                            'connector': connector,
+                            'status': None
+                            }
+                    iter += 1
+                    initial_data.append(data)
+            else:
+                data = {
+                    'id': len(rules)*2+iter,
+                    'rule': rule,
+                    'connector': connector,
+                    'status': None
+                    }
+                iter += 1
+                initial_data.append(data)
+    if request.method == 'POST':
+        formset = GlobalRuleStatusFormSet(request.POST, initial=initial_data)
+        if formset.is_valid():
+            for form in formset:
+                pass
+                isExisting = StatusByRule.objects.filter(rule=form.cleaned_data['rule'], connector=form.cleaned_data['connector']).first()
+                if isExisting:
+                    if isExisting.status != form.cleaned_data['status']:
+                        rule = Rule.objects.filter(id=form.cleaned_data['rule'].id).first()
+                        rule.toUpdate = True
+                        rule.save()
+                    isExisting.status = form.cleaned_data['status']
+                    isExisting.save()
+                else:
+                    if form.cleaned_data['connector'] is not None and form.cleaned_data['rule'] is not None:
+                        newStatusByRule = StatusByRule.objects.create(
+                                            rule=form.cleaned_data['rule'],
+                                            connector=form.cleaned_data['connector'],
+                                            status=form.cleaned_data['status']
+                                        )
+                        newStatusByRule.save()
+            return redirect('rules')
+    else:
+        formset = GlobalRuleStatusFormSet(initial=initial_data)    
+    templateArgs = {'formset': formset}
+    templateArgs['connectors'] = connectors
+    templateArgs['rules'] = rules
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/rules/management_rule_status.html', templateArgs)
+
+# Integration specific
 def testConnection(connectorInstance):
     try:
         if connectorInstance.type == "splunk":
-            if "://" in connectorInstance.url:
-                HOST = ':'.join(connectorInstance.url.split(':',2)[:2]).split('//')[1]
-                PORT = connectorInstance.url.split(':',2)[2] if len(connectorInstance.url.split(':',2)) > 2 else 8089
-            else:
-                HOST = connectorInstance.url.split(':')[0]
-                PORT = connectorInstance.url.split(':')[1] if len(connectorInstance.url.split(':')) > 1 else 8089
-
-            service = client.connect(
-            host=HOST,
-            port=PORT,
-            username=connectorInstance.api_client,
-            password=connectorInstance.api_key,
-            verify=connectorInstance.sslVerification
-            )
+            service = initiateCon(connectorInstance)
 
             search_query = 'search * | head 1'
             kwargs_search = {"exec_mode": "normal"}
@@ -246,5 +544,117 @@ def testConnection(connectorInstance):
         return e
     
 def initiatedConnector(connectorInstance):
-    time.sleep(500)
-    return False
+    if connectorInstance.type == "splunk":
+        service = initiateCon(connectorInstance)
+        alreadyDefinedRules = retrieveDefinedAlerts(service)
+        definedRules = Rule.objects.all()
+        levelTable = {'1': 'low', '2': 'low', '3': 'medium', '4': 'high', '5': 'critical'}
+        for rule in alreadyDefinedRules:
+            if rule['Name'] in definedRules.values_list('title', flat=True):
+                modified = False
+                existingRule = Rule.objects.filter(title=rule['Name']).first()
+                if "/app/search/alert" not in existingRule.references:
+                    existingRule.references= existingRule.references + [f"{connectorInstance.url}/app/search/alert?s=%2FservicesNS%2Fnobody%2Fsearch%2Fsaved%2Fsearches%2F{rule['Name']}"]
+                    modified = True
+                if existingRule.level != levelTable[rule['Severity']]:
+                    existingRule.level =levelTable[rule['Severity']]
+                    modified = True
+                updatedStatus = True if rule["Disabled"] == "0" else False
+                registeredStatus = StatusByRule.objects.filter(rule=existingRule, connector=connectorInstance).first()
+                if registeredStatus:
+                    if updatedStatus != registeredStatus.status:
+                        registeredStatus.status = updatedStatus
+                        modified = True
+                else:
+                    status = StatusByRule.objects.create(
+                        rule=existingRule,
+                        connector=connectorInstance,
+                        status=updatedStatus)
+                status.save()
+                connList = get_object_or_404(Connector, pk=connectorInstance.id)
+                if connList not in existingRule.associatedConnector.all():
+                    currentConn = existingRule.associatedConnector.all().values_list('id', flat=True)
+                    connCList = []
+                    for elem in currentConn:
+                        connCList.append(elem)
+                    existingRule.associatedConnector.set(connCList + [connList])
+                    modified = True
+                registeredStatus = StatusByRule.objects.filter(rule=existingRule, connector=connectorInstance).first()
+                currentSPL = SPLByRule.objects.filter(rule=existingRule).first()
+                if currentSPL:
+                    if currentSPL.spl != rule["Search Query"]:
+                        currentSPL.spl = rule["Search Query"]
+                        currentSPL.save()
+                        modified = True
+                else:
+                    query = SPLByRule.objects.create(
+                        rule=existingRule,
+                        spl=rule["Search Query"]
+                        )
+                    query.save()
+                if modified:
+                    existingRule.modified = timezone.now().isoformat()
+                existingRule.save()
+            else:
+                newRule = Rule.objects.create(
+                        title=rule['Name'],
+                        reference_id=str(uuid.uuid4()),
+                        description=f"Automatically imported. Imported from connector: {connectorInstance.title}.",
+                        author=rule['Author'],
+                        references=[f"{connectorInstance.url}/app/search/alert?s=%2FservicesNS%2Fnobody%2Fsearch%2Fsaved%2Fsearches%2F{rule['Name']}"],
+                        creation_date=timezone.now().isoformat(),
+                        detection={'detail': 'Imported from connector, SIGMA format not available.'},
+                        falsepositives="Unknown",
+                        level=levelTable[rule['Severity']],
+                    )
+                statusToRegister = True if rule["Disabled"] == "0" else False
+                status = StatusByRule.objects.create(
+                        rule=newRule,
+                        connector=connectorInstance,
+                        status=statusToRegister)
+                status.save()
+                connList = get_object_or_404(Connector, pk=connectorInstance.id)
+                newRule.associatedConnector.set([connList])
+                query = SPLByRule.objects.create(
+                        rule=newRule,
+                        spl=rule["Search Query"]
+                        )
+                query.save()
+                tagIDs = []
+                tagInfoTemp = Tags.objects.filter(title__exact="auto_imported")
+                if len(tagInfoTemp) == 0:
+                    new_tag = Tags.objects.create(
+                        title="auto_imported",
+                        description='Automatically generated'
+                    )
+                    tagIDs.append(new_tag.id)
+                    new_tag.save()
+                else:
+                    for tag in tagInfoTemp:
+                        tagIDs.append(tag.id)
+                tagList = Tags.objects.filter(pk__in=tagIDs)
+                newRule.tags.set(tagList)
+                newRule.save()
+    return True
+
+@login_required
+def handleConnectorChange(request):
+    if request.method == 'POST':
+        selectedConnector = request.POST.get('activeConnector')
+        if selectedConnector != "None":
+            connector = get_object_or_404(Connector, title=selectedConnector)
+        currentConnector = Connector.objects.filter(active__exact="1").first()
+        if currentConnector:
+            currentConnector.active = False
+            currentConnector.save()
+            if selectedConnector != "None":
+                connector.active = True
+                connector.save()
+        else:
+            connector.active = True
+            connector.save()
+    redirectPage = request.POST.get('previousPage')
+    return redirect(redirectPage)
+
+def test(request):
+    pass

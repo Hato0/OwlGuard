@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Rules{% endblock title %}
+{% block content %}
+<div class="header">
+    <div class="left">
+        <h1>Rules</h1>
+        <ul class="breadcrumb">
+            <li><a href="#">
+                    Rules
+                </a></li>
+            <p class="menu-separator">/</p>
+            <li><a href="#" class="active">Management - Status</a></li>
+        </ul>
+    </div>
+</div>
+<div class="bottom-data">
+    <div class="documentations">
+        <form method="post">
+            {% csrf_token %}
+            <table>
+                <thead>
+                    <tr>
+                        <th rowspan="2">Rule Title</th>
+                        <th colspan="{{ connectors|length }}">Status</th>
+                    </tr>
+                    <tr>
+                    {% for connector in connectors %}
+                        <th>{{ connector }}</th>
+                    {% endfor %}
+                    </tr>
+                </thead>
+                <tbody style="text-align: center;">
+                    {% for rule in rules %}
+                        <tr>
+                            <td>
+                                <p>
+                                    {{ rule.title }}
+                                </p>
+                            </td>
+                            {% for connector in connectors %}
+                                {% for form in formset %}
+                                    {% if rule.id == form.rule.value%}
+                                        {% if connector.id == form.connector.value %}                  
+                                            <td>
+                                                {% if form.status.value != None %}
+                                                    {{ form.rule.as_hidden }}
+                                                    {{ form.connector.as_hidden }}
+                                                    {{ form.status }}
+                                                    <label for="{{ form.status.id_for_label }}"></label>
+                                                {% else %}
+                                                    <i class='bx bx-block'></i>
+                                                {% endif %}
+                                            </td>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+                            <td>
+                            {{ formset.management_form }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <button type="submit" class="submit-btn">Save</button>
+        </form>
+    </div>
+</div>
+{% endblock content %}

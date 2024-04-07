@@ -152,3 +152,16 @@ function createMessageElement(messageText, messageTags) {
     var messageContainer = document.getElementById("message-container");
     messageContainer.appendChild(newDiv);
 }
+
+document.getElementById("activeConnector").addEventListener("change", function() {
+    document.getElementById("connectorForm").submit();
+});
+
+function popUpDection(id) {
+    var detection = document.getElementById(id);
+    if ("hidden" in detection.attributes){
+        detection.removeAttribute("hidden");
+    } else {
+        detection.setAttribute("hidden", "");
+    }
+}

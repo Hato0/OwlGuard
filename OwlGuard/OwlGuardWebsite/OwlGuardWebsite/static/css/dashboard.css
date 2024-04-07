@@ -6,6 +6,7 @@
     --dark-grey: #AAAAAA;
     --dark: #363949;
     --danger: #B11F23;
+    --medium-danger: #D7767B;
 	--light-danger: #FECDD3;
     --warning: #FBC02D;
     --light-warning: #FFF2C6;
@@ -13,6 +14,7 @@
     --light-success: #00A1FF;
     --tag-base: #62add9;
     --tag-compl: #00A1FF;
+    --language-specific: #31a7ec;
 }
 
 *{
@@ -521,6 +523,10 @@ body{
     background: var(--warning);
 }
 
+.content main .bottom-data .documentations table tr td .status.globalAlert{
+    background: var(--danger);
+}
+
 .content main .bottom-data .documentations.connectors-default{
     flex-grow: initial;
     flex-basis: auto;
@@ -967,11 +973,21 @@ textarea:focus {
     border-bottom: 1px solid var(--primary);
 }
 
-.container.center .model-form input[type="checkbox"].id_status {
+nav .fieldWrapper select{
+    width: 100%;
+    margin-top: 15px;
+    margin-bottom: 15px;
+    background-color: var(--light);
+    color: var(--dark);
+    font-size: 16px;
+    border: none;
+}
+
+.container.center .model-form input[type="checkbox"].id_status, .bottom-data .documentations input[type="checkbox"].id_status {
     display: none;
   }
 
-.container.center .model-form input[type="checkbox"].id_status + label {
+.container.center .model-form input[type="checkbox"].id_status + label , .bottom-data .documentations input[type="checkbox"].id_status + label {
 box-sizing: border-box;
 display: inline-block;
 width: 3rem;
@@ -984,7 +1000,7 @@ vertical-align: middle;
 margin-bottom: 0;
 margin-left: 10px
 }
-.container.center .model-form input[type="checkbox"].id_status + label::before {
+.container.center .model-form input[type="checkbox"].id_status + label::before, .bottom-data .documentations input[type="checkbox"].id_status + label::before {
 box-sizing: border-box;
 display: block;
 content: "";
@@ -994,12 +1010,13 @@ border-radius: 50%;
 background-color: #fff;
 transition: all 0.5s ;
 }
-.container.center .model-form input[type="checkbox"].id_status:checked + label {
+.container.center .model-form input[type="checkbox"].id_status:checked + label, .bottom-data .documentations input[type="checkbox"].id_status:checked + label {
 background-color: var(--light-success);
 }
-.container.center .model-form input[type="checkbox"].id_status:checked + label::before {
+.container.center .model-form input[type="checkbox"].id_status:checked + label::before, .bottom-data .documentations input[type="checkbox"].id_status:checked + label::before {
 margin-left: 1.5rem ;
 }
+
 
 .info-btn {
     background-color: transparent;
@@ -1168,3 +1185,21 @@ span.select2-dropdown.select2-dropdown--below {
 .closebtn:hover {
     transform: scale(1.3);
 }
+
+.text-over {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff;
+    background-color: #333;
+    padding: 5px 10px;
+    visibility: hidden; /* Initially hide the text */
+    opacity: 0; /* Initially make it transparent */
+    transition: opacity 0.3s; /* Add a transition for smooth animation */
+  }
+
+  .container:hover .text-over {
+    visibility: visible; /* Show the text on hover */
+    opacity: 1; /* Make it fully visible */
+  }

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Rules{% endblock title %}
+{% block content %}
+<div class="header">
+    <div class="left">
+        <h1>Rules</h1>
+        <ul class="breadcrumb">
+            <li><a href="#">Rules</a></li>
+            <li class="menu-separator">/</li>
+            <li><a href="#" class="active">Dashboard</a></li>
+        </ul>
+    </div>
+    <div style="display: flex">
+        <a href="{% url 'createRule' %}" class="report" style="margin-right: 10px;">
+            <i class='bx bx-add-to-queue'></i>
+            <span>Create rules</span>
+        </a>
+        <a href="{% url 'ruleManagementAssociation' %}" class="report" style="margin-right: 10px;">
+            <i class='bx bx-collapse-horizontal'></i>
+            <span>Association updates</span>
+        </a>
+        <a href="{% url 'ruleManagementStatus' %}" class="report" style="margin-right: 10px;">
+            <i class='bx bx-question-mark'></i>
+            <span>Status updates</span>
+        </a>
+    </div>
+</div>
+<div class="bottom-data">
+    <div class="documentations">
+        <div class="header">
+            <i class='bx bx-book-open'></i>
+            <h3>Rules</h3>
+            <div class="filter-info">
+            </div>
+            <i class='bx bx-filter'></i>
+            <i class='bx bx-search'></i>
+        </div>
+        <table id="rulesTable">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Creation Date</th>
+                    <th>Author</th>
+                    <th>Status by Connector</th>
+                    <th>Tags</th>
+                    <th>Update Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if extractedRuleInfo|length > 0 %}
+                {% for rule in extractedRuleInfo %}
+                <tr onclick="rowClicked('{{ rule.id }}')">
+                    <td style="display:revert;">{{ rule.title }}</td>
+                    <td class="date-cell">{{ rule.import_at }}</td>
+                    <td class="center-cell">{{ rule.author }}</td>
+                    <td class="center-cell">
+                        {% if rule.status %}
+                            {% for connector in rule.status %}
+                                <span class="status {% if connector.status == False or connector.status == None %}process{% else %}completed{% endif %}" style="margin-bottom: 15px;">{% if connector.status == False or connector.status == None %}{{ connector.title }}: Disable{% else %}{{ connector.title }}: Enable{% endif %}</span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="status disable">Not associated</span>
+                        {% endif %}
+                    </td> 
+                    <td class="center-cell">{% for tag in rule.tags %}<a href="#" class="tag" onclick="filterByTag('{{ tag.title }}'); event.stopPropagation();">{{ tag.title }}</a>{% endfor %}</td>
+                    <td class="center-cell">
+                            <span class="status {% if rule.toUpdate == True %}process{% else %}completed{% endif %}" style="margin-bottom: 15px;">{% if rule.toUpdate == False %}Up To Date{% else %}Pending Update{% endif %}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="5" class="no-rule-info">
+                        <i class='bx bx-info-circle'></i>
+                        <span>You did not create any rule yet! <a href="{% url 'createRule' %}" style="color: var(--dark)">Create or import one?</a></span>
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock content %}

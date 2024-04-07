@@ -14,7 +14,7 @@
 </div>
 <div class="bottom-data">
     {% for connector in extractedConnectorInfo %}
-    <div class="documentations connectors-default defined" style="box-shadow: {% if connector.status %}var(--success){% else %}var(--light-danger){% endif %} 0px 25px 60px -12px inset, {% if connector.status %}var(--success){% else %}var(--light-danger){% endif %} 0px 18px 36px -18px inset;">
+    <div class="documentations connectors-default defined" style="box-shadow: {% if connector.status and connector.active %}var(--success){% elif connector.status and not connector.active %}var(--light-danger){% else %}var(--danger){% endif %} 0px 25px 60px -12px inset, {% if connector.status and connector.active %}var(--success){% elif connector.status and not connector.active %}var(--light-danger){% else %}var(--danger){% endif %} 0px 18px 36px -18px inset;">
         <div>
             <a href={% url 'connectorById' connector.id %}>
             <h2>{{ connector.title }}</h2>

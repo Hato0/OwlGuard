@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static%}
 {% block title %}Rules{% endblock title %}
 {% block content %}
 <div class="header">
@@ -10,34 +11,61 @@
             <li><a href="#" class="active">Details</a></li>
         </ul>
     </div>
-    <a href="{% url 'editRule' rule_details.id %}" class="report">
-        <i class='bx bx-edit'></i>
-        <span>Edit</span>
-    </a>
+    <div style="display: flex">
+        <a href="{% url 'editRule' rule_details.id %}" class="report">
+            <i class='bx bx-edit'></i>
+            <span>Edit</span>
+        </a>
+        <a href="{% url 'delRuleById' rule_details.id %}" class="report" style="margin-left: 10px; background-color: var(--medium-danger)">
+            <i class='bx bxs-message-square-x'></i>
+            <span>Delete</span>
+        </a>
+    </div>
 </div>
-<div class="container center" style='margin-top: 20px'>
+<div class="container center" style='margin-top: 20px;'>
     <ul class="rule-details">
         <li>
             <h3>{{ rule_details.title }}</h3>
-            <p>Status:<span class="status {% if rule_details.status %}completed{% else %}disable{% endif %}">{% if rule_details.status %} Active {% else %} Inactive {% endif %}</span></p>
+            <p>Status:
+                {% if rule_details.status|length > 0 %}
+                    {% for elem in rule_details.status %}
+                        <span class="status {% if elem.status %}completed{% else %}disable{% endif %}">{% if elem.status %} Active {% else %} Inactive {% endif %}</span>
+                    {% endfor %}
+                {% else %}
+                    <span class="status {% if rule_details.status %}completed{% else %}disable{% endif %}">{% if rule_details.status %} Active {% else %} Inactive {% endif %}</span>
+                {% endif %}
+            </p>
             <p>Description: <span>{{ rule_details.description }}</span></p>
             <div class="detection-display">
                 <p>Detection:</p>
                 {% for key, value in rule_details.detection.items %}
                     {% if key != "condition" %} 
                         <ul>
-                            <li>{{key}}:<li>
-                                <ul>
-                                {% for keyChild, valuesChild in value.items %}
-                                    <li>{{ keyChild }}: {{ valuesChild }}</li>
-                                {% endfor %}
-                                </ul>
+                            {% if value.items %} 
+                                <li>{{key}}:<li>
+                                    <ul>
+                                    {% for keyChild, valuesChild in value.items %}
+                                        <li>{{ keyChild }}: {{ valuesChild }}</li>
+                                    {% endfor %}
+                                    </ul>
+                            {% else %}
+                                <li>{{key}}: {{value}}<li>
+                            {% endif %}
                         </ul>
                     {% endif %}
                 {% endfor %}
+                {% if rule_details.detection.condition %}
                 <ul>
                     <li>condition: {{rule_details.detection.condition}}</li>
                 </ul>
+                {% endif %}
+                <div>
+                    {% if rule_details.spl %}
+                        <a onclick='popUpDection("spl")' class="report" style="background-color: transparent;">
+                            <img src="{% static 'img/splunk.png' %}">
+                        </a>
+                    {% endif %}
+                </div>
             </div>
             <p>References: 
                 <ul>
@@ -94,4 +122,21 @@
         </li>
     </ul>
 </div>
+{% if rule_details.spl %}
+    <div id="spl" hidden>
+        <div class="container center" style="position: relative">
+            <p>
+                {% for line in rule_details.spl %}
+                    {{ line }}</br>
+                {% endfor %}
+            </p>
+            <div class="header" style="right: 0; position: absolute; margin-right: 20px; margin-top: -25px;">
+                <a href="{% url 'editRuleSPL' rule_details.SPLid %}" class="report">
+                    <i class='bx bx-edit'></i>
+                    <span>Edit</span>
+                </a>
+            </div>
+        </div>
+    </div>
+{% endif %}
 {% endblock content %}
