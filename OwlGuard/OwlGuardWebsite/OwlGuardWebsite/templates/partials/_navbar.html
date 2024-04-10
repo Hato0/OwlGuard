@@ -13,9 +13,9 @@
             <select id="activeConnector" name="activeConnector" style="text-align: right;">
                 {% if currentConnector %}
                     <option value="{{ currentConnector.title }}" selected="">{{ currentConnector.title }}</option>
-                    <option value="None">None</option>
+                    <option value="None">All instances</option>
                 {% else %}
-                    <option value="None" selected="">None</option>
+                    <option value="None" selected="">All instances</option>
                 {% endif %}
                 {% for connector in allConnector %}
                         <option value="{{ connector.title }}">{{ connector.title }}</option>

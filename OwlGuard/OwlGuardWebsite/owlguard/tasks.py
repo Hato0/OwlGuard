@@ -3,6 +3,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from .models import Rule, Connector, Tags, StatusByRule, SPLByRule
 from django.shortcuts import get_object_or_404
 from .utils_splunk import *
+from .utils import *
 import uuid
 
 
@@ -26,7 +27,8 @@ def updateDetections():
                         modified = False
                         existingRule = Rule.objects.filter(title=rule['Name']).first()
                         if "/app/search/alert" not in existingRule['references']:
-                            existingRule.references= existingRule.references + [f"{connectorInstance.url}/app/search/alert?s=%2FservicesNS%2Fnobody%2Fsearch%2Fsaved%2Fsearches%2F{rule['Name']}"]
+                            ruleURLFriendly = rule['Name'].replace(' ','%20')
+                            existingRule.references= existingRule.references + [f"{connectorInstance.url}/app/search/alert?s=%2FservicesNS%2Fnobody%2Fsearch%2Fsaved%2Fsearches%2F{ruleURLFriendly}"]
                             modified = True
                         if existingRule.level != levelTable[rule['Severity']]:
                             existingRule.level =levelTable[rule['Severity']]
@@ -48,6 +50,7 @@ def updateDetections():
                             currentSPL.save()
                             modified = True
                         if modified:
+                            saveRuleHistory(existingRule)
                             existingRule.modified = timezone.now().isoformat()
                         existingRule.save()
                     else:

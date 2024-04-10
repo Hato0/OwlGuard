@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% load static%}
+{% block title %}Rules{% endblock title %}
+{% block content %}
+<div class="header">
+    <div class="left">
+        <h1>Rules</h1>
+        <ul class="breadcrumb">
+            <li><a href="#">Rules</a></li>
+            <li class="menu-separator">/</li>
+            <li><a href="#" class="active">History</a></li>
+        </ul>
+    </div>
+</div>
+<div class="container center" style='margin-top: 20px;width: 80%'>
+    <div style="display: flex; justify-content: center;">
+        <select id="source" name="source" class="compareVersion" style="text-align: center;" onchange="toggleDataHistoric()">
+            <option value="None">---Source version---</option>
+            <option value="Current">Current</option>
+            {% for item in historicData %}
+                <option value="{{item.0}}">{{item.0}}</option>
+            {% endfor %}
+        </select>
+        <select id="target" name="target" class="compareVersion" style="text-align: center;" onchange="toggleDataHistoric()">
+            <option value="None">---Target version---</option>
+            <option value="Current">Current</option>
+            {% for item in historicData %}
+                <option value="{{item.0}}">{{item.0}}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="historicContainer">
+        <div id="Current" style="display: none">
+            <ul class="rule-details">
+                <li>
+                    <h3>{{ rule_details.title }}</h3>
+                    <p>Status:
+                        {% if rule_details.status|length > 0 %}
+                            {% for elem in rule_details.status %}
+                                <span class="status {% if elem.status %}completed{% else %}disable{% endif %}">{% if elem.status %} Active {% else %} Inactive {% endif %}</span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="status {% if rule_details.status %}completed{% else %}disable{% endif %}">{% if rule_details.status %} Active {% else %} Inactive {% endif %}</span>
+                        {% endif %}
+                    </p>
+                    <p>Description: <span>{{ rule_details.description }}</span></p>
+                    <div class="detection-display">
+                        <p>Detection:</p>
+                        {% for key, value in rule_details.detection.items %}
+                            {% if key != "condition" %} 
+                                <ul>
+                                    {% if value.items %} 
+                                        <li>{{key}}:<li>
+                                            <ul>
+                                            {% for keyChild, valuesChild in value.items %}
+                                                <li>{{ keyChild }}: {{ valuesChild }}</li>
+                                            {% endfor %}
+                                            </ul>
+                                    {% else %}
+                                        <li>{{key}}: {{value}}<li>
+                                    {% endif %}
+                                </ul>
+                            {% endif %}
+                        {% endfor %}
+                        {% if rule_details.detection.condition %}
+                        <ul>
+                            <li>condition: {{rule_details.detection.condition}}</li>
+                        </ul>
+                        {% endif %}
+                        <div>
+                            {% if rule_details.spl %}
+                                <a onclick='popUpDection("spl")' class="report" style="background-color: transparent;">
+                                    <img src="{% static 'img/splunk.png' %}">
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <p>References: 
+                        <ul>
+                            {% for reference in rule_details.references %}
+                                <li><a href={{ reference }} target="_blank">{{ reference }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </p>
+                    <p>Author: <span>{{ rule_details.author }}</span></p>
+                    <p>Imported: <span>{{ rule_details.import_at }}</span></p>
+                    <p>Creation: <span>{{ rule_details.creation_date }}</span></p>
+                    <p>Modified: <span>{% if rule_details.modified %}{{ rule_details.modified }}{% else %}Never modified{% endif %}</span></p>
+                    <p>Modified by: <span>{% if rule_details.modified_by %}{{ rule_details.modified_by }}{% else %}Never modified{% endif %}</span></p>
+                    <p>Tags:
+                        <ul>
+                            {% for tag in rule_details.tags.all %}
+                                <li>{{ tag }}</li>
+                            {% endfor %}
+                        </ul>
+                    </p>
+                    <p>Log Sources:
+                        {% if rule_details.logsource_id.all %}
+                        <ul>
+                            {% for logsource in rule_details.logsource_id.all %}
+                                <li>{{ logsource }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <span>According to our data no log source as been specified..</span>
+                        {% endif %}
+                    </p>
+                    <p>Testing Scripts:
+                        {% if rule_details.testing_script_id.all %}
+                        <ul>
+                            {% for script in rule_details.testing_script_id.all %}
+                                <li>{{ script }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <span>This rule is not associated with any testing script..</span>
+                        {% endif %}
+                    </p>
+                    <p>Investigation Processes:
+                        {% if rule_details.investigation_process_id.all %}
+                        <ul>
+                            {% for process in rule_details.investigation_process_id.all %}
+                                <li>{{ process }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <span>No investigation process found, will be hard for juniors to investigate it..</span>
+                        {% endif %}
+                    </p>
+                </li>
+            </ul>
+            {% if rule_details.spl %}
+                <div id="spl" hidden>
+                    <div class="container center" style="position: relative">
+                        <p>
+                            {% for line in rule_details.spl %}
+                                {{ line }}</br>
+                            {% endfor %}
+                        </p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        {% for item in historicData %}
+            <div id="{{item.0}}" style="display: none">
+                <ul class="rule-details">
+                    <li>
+                        <h3>{{ item.1.title }}</h3>
+                        <p>Status:
+                            {% if item.1.status|length > 0 %}
+                                {% for elem in item.1.status %}
+                                    <span class="status {% if elem.status %}completed{% else %}disable{% endif %}">{% if elem.status %} Active {% else %} Inactive {% endif %}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="status {% if item.1.status %}completed{% else %}disable{% endif %}">{% if item.1.status %} Active {% else %} Inactive {% endif %}</span>
+                            {% endif %}
+                        </p>
+                        <p>Description: <span>{{ item.1.description }}</span></p>
+                        <div class="detection-display">
+                            <p>Detection:</p>
+                            {% for key, value in item.1.detection.items %}
+                                {% if key != "condition" %} 
+                                    <ul>
+                                        {% if value.items %} 
+                                            <li>{{key}}:<li>
+                                                <ul>
+                                                {% for keyChild, valuesChild in value.items %}
+                                                    <li>{{ keyChild }}: {{ valuesChild }}</li>
+                                                {% endfor %}
+                                                </ul>
+                                        {% else %}
+                                            <li>{{key}}: {{value}}<li>
+                                        {% endif %}
+                                    </ul>
+                                {% endif %}
+                            {% endfor %}
+                            {% if item.1.detection.condition %}
+                            <ul>
+                                <li>condition: {{item.1.detection.condition}}</li>
+                            </ul>
+                            {% endif %}
+                            <div>
+                                {% if item.1.spl %}
+                                    <a onclick='popUpDection("spl")' class="report" style="background-color: transparent;">
+                                        <img src="{% static 'img/splunk.png' %}">
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <p>References: 
+                            <ul>
+                                {% for reference in item.1.references %}
+                                    <li><a href={{ reference }} target="_blank">{{ reference }}</a></li>
+                                {% endfor %}
+                            </ul>
+                        </p>
+                        <p>Author: <span>{{ item.1.author }}</span></p>
+                        <p>Imported: <span>{{ item.1.import_at }}</span></p>
+                        <p>Creation: <span>{{ item.1.creation_date }}</span></p>
+                        <p>Modified: <span>{% if item.1.modified %}{{ item.1.modified }}{% else %}Never modified{% endif %}</span></p>
+                        <p>Modified by: <span>{% if item.1.modified_by %}{{ item.1.modified_by }}{% else %}Never modified{% endif %}</span></p>
+                        <p>Tags:
+                            <ul>
+                                {% for tag in item.1.tags.all %}
+                                    <li>{{ tag }}</li>
+                                {% endfor %}
+                            </ul>
+                        </p>
+                        <p>Log Sources:
+                            {% if item.1.logsource_id.all %}
+                            <ul>
+                                {% for logsource in item.1.logsource_id.all %}
+                                    <li>{{ logsource }}</li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <span>According to our data no log source as been specified..</span>
+                            {% endif %}
+                        </p>
+                        <p>Testing Scripts:
+                            {% if item.1.testing_script_id.all %}
+                            <ul>
+                                {% for script in item.1.testing_script_id.all %}
+                                    <li>{{ script }}</li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <span>This rule is not associated with any testing script..</span>
+                            {% endif %}
+                        </p>
+                        <p>Investigation Processes:
+                            {% if item.1.investigation_process_id.all %}
+                            <ul>
+                                {% for process in item.1.investigation_process_id.all %}
+                                    <li>{{ process }}</li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <span>No investigation process found, will be hard for juniors to investigate it..</span>
+                            {% endif %}
+                        </p>
+                    </li>
+                </ul>
+                {% if item.1.spl %}
+                    <div id="spl" hidden>
+                        <div class="container center" style="position: relative">
+                            <p>
+                                {% for line in item.1.spl %}
+                                    {{ line }}</br>
+                                {% endfor %}
+                            </p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock content %}

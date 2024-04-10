@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Rule, TestingScript, Connector, Reminders, Tags, Logsource, StatusByRule, SPLByRule
+from .models import Rule, TestingScript, Connector, Reminders, Tags, Logsource, StatusByRule, SPLByRule, HistoryByRule
 from django.db.models import Count, Q
 from django.forms import formset_factory
 from django.utils import timezone
@@ -9,6 +9,7 @@ from datetime import datetime
 from django.contrib import messages
 import yaml, json, uuid
 from .utils_splunk import *
+from .utils import *
 import splunklib.client as client
 import splunklib.results as results
 
@@ -199,6 +200,7 @@ def edit_rule(request, id):
     if request.method == 'POST':
         form = RuleForm(request.POST, instance=rule)
         if form.is_valid():
+            res = saveRuleHistory(rule)
             if rule.raw:
                 with open(str(rule.raw), 'r') as file:
                     data = yaml.safe_load(file)
@@ -271,6 +273,7 @@ def editRuleSPL(request, id):
     if request.method == 'POST':
         form = RuleSPLForm(request.POST, instance=rule)
         if form.is_valid():
+            res = saveRuleHistory(rule.rule)
             rule.spl = request.POST.get('spl')
             rule.rule = rule.rule
             ruleData.modified = timezone.now().isoformat()
@@ -291,6 +294,32 @@ def delRuleById(request, id):
     rule = get_object_or_404(Rule, pk=id)
     rule.delete()
     return redirect('rules')  
+
+def ruleHistoryById(request, id):
+    rule = get_object_or_404(Rule, pk=id)
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+        rule.status = StatusByRule.objects.filter(connector=currentConnector, rule=rule.id).first()
+    else:
+        allConnector = Connector.objects.all()
+        rule.status = StatusByRule.objects.filter(rule=rule.id).first()
+    ruleByConnectorType = SPLByRule.objects.filter(rule=rule)
+    for SPL in ruleByConnectorType:
+        rule.spl = SPL.spl.split('\n')
+    templateArgs = {'rule_details': rule}
+    allHistory = HistoryByRule.objects.filter(rule=rule)
+    cnt=0
+    templateArgs['historicData'] = []
+    for history in allHistory:
+        ruleByConnectorType = SPLByRule.objects.filter(rule=rule)
+        for SPL in ruleByConnectorType:
+            history.spl = SPL.spl.split('\n')
+        templateArgs['historicData'].append([f"history_{cnt}", history])
+        cnt += 1
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/rules/rules_history.html', templateArgs)
 
 # Connector views
 
@@ -425,10 +454,23 @@ def ruleManagementAssociation(request):
             for form in formset:
                 ruleID = form.cleaned_data['id_pk']
                 associatedConnectorValues = form.cleaned_data.get('associatedConnector', [])
-                rule = Rule.objects.filter(id__exact=ruleID).get()
-                rule.associatedConnector.set(associatedConnectorValues)
-                rule.toUpdate = True
-                rule.save()
+                rule = Rule.objects.filter(id__exact=ruleID).prefetch_related('associatedConnector').get()
+                modified = False
+                compareListConn = list(connectAssoc.id for connectAssoc in associatedConnectorValues)
+                for connector in rule.associatedConnector.values('id'):  
+                    print(compareListConn)  
+                    print(connector['id'])           
+                    if connector['id'] not in compareListConn:
+                        modified = True
+                if len(rule.associatedConnector.values('id')) != len(compareListConn):
+                    modified = True
+                if modified: 
+                    res = saveRuleHistory(rule)
+                    rule.associatedConnector.set(associatedConnectorValues)
+                    rule.modified = timezone.now().isoformat()
+                    rule.modified_by = request.user
+                    rule.toUpdate = True
+                    rule.save()
             return redirect('rules')
     else:
         formset = GlobalRuleAssociationFormSet(initial=initial_data)    
@@ -497,13 +539,14 @@ def ruleManagementStatus(request):
         formset = GlobalRuleStatusFormSet(request.POST, initial=initial_data)
         if formset.is_valid():
             for form in formset:
-                pass
                 isExisting = StatusByRule.objects.filter(rule=form.cleaned_data['rule'], connector=form.cleaned_data['connector']).first()
                 if isExisting:
                     if isExisting.status != form.cleaned_data['status']:
-                        rule = Rule.objects.filter(id=form.cleaned_data['rule'].id).first()
-                        rule.toUpdate = True
-                        rule.save()
+                        res = saveRuleHistory(form.cleaned_data['rule'])
+                        form.cleaned_data['rule'].modified_by = request.user
+                        form.cleaned_data['rule'].modified = timezone.now().isoformat()
+                        form.cleaned_data['rule'].toUpdate = True
+                        form.cleaned_data['rule'].save()
                     isExisting.status = form.cleaned_data['status']
                     isExisting.save()
                 else:
@@ -514,6 +557,11 @@ def ruleManagementStatus(request):
                                             status=form.cleaned_data['status']
                                         )
                         newStatusByRule.save()
+                        form.cleaned_data['rule'].modified_by = request.user
+                        form.cleaned_data['rule'].modified = timezone.now().isoformat()
+                        form.cleaned_data['rule'].toUpdate = True
+                        form.cleaned_data['rule'].save()
+                        res = saveRuleHistory(form.cleaned_data['rule'])
             return redirect('rules')
     else:
         formset = GlobalRuleStatusFormSet(initial=initial_data)    

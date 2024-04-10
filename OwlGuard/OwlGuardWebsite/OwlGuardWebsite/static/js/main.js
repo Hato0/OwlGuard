@@ -165,3 +165,22 @@ function popUpDection(id) {
         detection.setAttribute("hidden", "");
     }
 }
+
+function toggleDataHistoric() {
+    var sourceSelect = document.getElementById("source");
+    var targetSelect = document.getElementById("target");
+    var selectedSource = sourceSelect.value;
+    var selectedTarget = targetSelect.value;
+
+    var divsToHide = document.querySelectorAll("[id^='history'], #Current");
+    divsToHide.forEach(function(div) {
+        div.style.display = "none";
+    });
+
+    if (selectedSource !== "None") {
+        document.getElementById(selectedSource).style.display = "block";
+    }
+    if (selectedTarget !== "None") {
+        document.getElementById(selectedTarget).style.display = "block";
+    }
+}

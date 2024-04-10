@@ -11,6 +11,7 @@ urlpatterns = [
     path('rules/<int:id>/edit', views.edit_rule, name="editRule"),
     path('rules/<int:id>/editSPL', views.editRuleSPL, name="editRuleSPL"),
     path('rules/<int:id>/delete', views.delRuleById, name="delRuleById"),
+    path('rules/<int:id>/history', views.ruleHistoryById, name="ruleHistoryById"),
     path('rules/management/association', views.ruleManagementAssociation, name="ruleManagementAssociation"),
     path('rules/management/status', views.ruleManagementStatus, name="ruleManagementStatus"),
     path('connectors', views.connectors, name="connectors"),
