@@ -1,5 +1,5 @@
 from django import forms
-from .models import Rule, Connector, StatusByRule, SPLByRule
+from .models import Rule, Connector, StatusByRule, SPLByRule, InvestigationProcess
 
 class UploadYAMLForm(forms.Form):
     yaml_files = forms.FileField(label='Select YAML file(s)', required=False)
@@ -79,3 +79,12 @@ class RuleSPLForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(RuleSPLForm, self).__init__(*args, **kwargs)
         self.fields['rule'].required = False
+
+class DocumentationForm(forms.ModelForm):
+    class Meta:
+        model = InvestigationProcess
+        fields = ('title', 'goal', 'investigationsteps', 'remediationsteps', 'associatedRule')
+
+    def __init__(self, *args, **kwargs):
+        super(DocumentationForm, self).__init__(*args, **kwargs)
+        self.fields['title'].widget.attrs.update({'class': 'form-input'})

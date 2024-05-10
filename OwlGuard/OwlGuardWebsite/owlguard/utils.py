@@ -1,4 +1,4 @@
-from .models import Rule, StatusByRule, HistoryByRule, SPLByRule
+from .models import Rule, StatusByRule, HistoryByRule, SPLByRule, InvestigationProcess, HistoryByInvestigationProcess
 
 def saveRuleHistory(rule):
     try:
@@ -47,6 +47,31 @@ def saveRuleHistory(rule):
                     statusToSave.append([status.connector, status.status])
             ruleHistory.status = statusToSave
             ruleHistory.save()
+        return True
+    except Exception as e:
+        print(e)
+        return False
+    
+def saveDocuHistory(documentation):
+    try:
+        docs = InvestigationProcess.objects.filter(id=documentation.id).all().prefetch_related('associatedRule')
+        for docData in docs:
+            docHistory = HistoryByInvestigationProcess.objects.create(
+                                investigationProcess = docData,
+                                title = docData.title,
+                                goal = docData.goal,
+                                investigationsteps = docData.investigationsteps,
+                                remediationsteps = docData.remediationsteps,
+                                creation_date = docData.creation_date,
+                                author = docData.author,
+                                modified = docData.modified,
+                                modified_by = docData.modified_by,
+                            )    
+            rules = [] 
+            for item in docData.associatedRule.values('id'):
+                rules.append(item['id'])
+            docHistory.associatedRule.set(rules)
+            docHistory.save()
         return True
     except Exception as e:
         print(e)

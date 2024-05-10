@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load static%}
+{% block title %}Rules{% endblock title %}
+{% block content %}
+<div class="header">
+    <div class="left">
+        <h1>Rules</h1>
+        <ul class="breadcrumb">
+            <li><a href="#">Rules</a></li>
+            <li class="menu-separator">/</li>
+            <li><a href="#" class="active">History</a></li>
+        </ul>
+    </div>
+</div>
+<div class="container center" style='margin-top: 20px;width: 80%'>
+    <div style="display: flex; justify-content: center;">
+        <select id="source" name="source" class="compareVersion" style="text-align: center;" onchange="toggleDataHistoric()">
+            <option value="None">---Source version---</option>
+            <option value="Current">Current</option>
+            {% for item in historicData %}
+                <option value="{{item.0}}">{{item.0}}</option>
+            {% endfor %}
+        </select>
+        <select id="target" name="target" class="compareVersion" style="text-align: center;" onchange="toggleDataHistoric()">
+            <option value="None">---Target version---</option>
+            <option value="Current">Current</option>
+            {% for item in historicData %}
+                <option value="{{item.0}}">{{item.0}}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="historicContainer">
+        <div id="Current" style="display: none">
+            <ul class="rule-details">
+                <li>
+                    <h3>{{ documentation_details.title }}</h3>
+                    <p>Creation: <span>{{ documentation_details.creation_date }} ({{ documentation_details.author }})</span></p>
+                    <p>Modified: <span>{% if documentation_details.modified %}{{ documentation_details.modified }} ({{ documentation_details.modified_by }}){% else %}Never modified{% endif %}</span></p>           
+                    <p>Goal: <span>{{ documentation_details.goal }}</span></p>
+                    <div class="detection-display">
+                        <p>Investigation steps:<br><span>{{ documentation_details.investigationsteps }}<span></p>
+                        <p>Remediation steps:<br><span>{{ documentation_details.remediationsteps }}<span></p>
+                    </div>
+                    <p>Associated rules: 
+                        <ul>
+                            {% for rule in documentation_details.associatedRule.all %}
+                                <li><a href="{% url 'rulesById' rule.id %}" target="_blank">{{ rule }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </p>
+                </li>
+            </ul>
+        </div>
+        {% for item in historicData %}
+            <div id="{{item.0}}" style="display: none">
+                <ul class="rule-details">
+                    <li>
+                        <h3>{{ item.1..title }}</h3>
+                        <p>Creation: <span>{{ item.1.creation_date }} ({{ item.1.author }})</span></p>
+                        <p>Modified: <span>{% if item.1.modified %}{{ item.1.modified }} ({{ item.1.modified_by }}){% else %}Never modified{% endif %}</span></p>           
+                        <p>Goal: <span>{{ item.1.goal }}</span></p>
+                        <div class="detection-display">
+                            <p>Investigation steps:<br><span>{{ item.1.investigationsteps }}<span></p>
+                            <p>Remediation steps:<br><span>{{ item.1.remediationsteps }}<span></p>
+                        </div>
+                        <p>Associated rules: 
+                            <ul>
+                                {% for rule in item.1.associatedRule.all %}
+                                    <li><a href="{% url 'rulesById' rule.id %}" target="_blank">{{ rule }}</a></li>
+                                {% endfor %}
+                            </ul>
+                        </p>
+                    </li>
+                </ul>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock content %}

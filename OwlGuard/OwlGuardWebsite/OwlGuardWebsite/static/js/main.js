@@ -38,6 +38,12 @@ function rowClicked(ruleId) {
     window.location.href = '/rules/' + ruleId;
 }
 
+function rowClickedDocu(docuId) {
+    // Redirect to a new page with the docu ID
+        window.location.href = '/documentation/' + docuId;
+    }
+
+
 function updateFileCount(input) {
     var count = input.files.length;
     var fileCountSpan = document.getElementById("file-count");

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load static%}
+{% block title %}Documentations{% endblock title %}
+{% block content %}
+<div class="header">
+    <div class="left">
+        <h1>Documentations</h1>
+        <ul class="breadcrumb">
+            <li><a href="#">Documentations</a></li>
+            <li class="menu-separator">/</li>
+            <li><a href="#" class="active">Documentations</a></li>
+        </ul>
+    </div>
+    <div style="display: flex">
+        <a href="{% url 'docuHistoryById' documentation_details.id %}" class="report" style="margin-right: 10px;">
+            <i class='bx bx-history'></i>
+            <span>History</span>
+        </a>
+        <a href="{% url 'editDocumentation' documentation_details.id %}" class="report">
+            <i class='bx bx-edit'></i>
+            <span>Edit</span>
+        </a>
+        <a href="{% url 'delDocuById' documentation_details.id %}" class="report" style="margin-left: 10px; background-color: var(--medium-danger)">
+            <i class='bx bxs-message-square-x'></i>
+            <span>Delete</span>
+        </a>
+    </div>
+</div>
+<div class="container center" style='margin-top: 20px;'>
+    <ul class="rule-details">
+        <li>
+            <h3>{{ documentation_details.title }}</h3>
+            <p>Creation: <span>{{ documentation_details.creation_date }} ({{ documentation_details.author }})</span></p>
+            <p>Modified: <span>{% if documentation_details.modified %}{{ documentation_details.modified }} ({{ documentation_details.modified_by }}){% else %}Never modified{% endif %}</span></p>           
+            <p>Goal: <span>{{ documentation_details.goal }}</span></p>
+            <div class="detection-display">
+                <p>Investigation steps:<br><span>{{ documentation_details.investigationsteps }}<span></p>
+                <p>Remediation steps:<br><span>{{ documentation_details.remediationsteps }}<span></p>
+            </div>
+            <p>Associated rules: 
+                <ul>
+                    {% for rule in documentation_details.associatedRule.all %}
+                        <li><a href="{% url 'rulesById' rule.id %}" target="_blank">{{ rule }}</a></li>
+                    {% endfor %}
+                </ul>
+            </p>
+        </li>
+    </ul>
+</div>
+{% endblock content %}

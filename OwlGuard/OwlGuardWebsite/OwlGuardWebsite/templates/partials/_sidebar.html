@@ -7,7 +7,7 @@
     <ul class="side-menu">
         <li {% if request.path == '/' %} class="active"{% endif %}><a href="{% url 'owlguard' %}"><i class='bx bxs-dashboard'></i>Dashboard</a></li>
         <li {% if '/rules' in request.path %} class="active"{% endif %}><a href="{% url 'rules' %}"><i class='bx bx-shield'></i>Rule</a></li>
-        <li><a href="#"><i class='bx bx-book-bookmark'></i>Documentation</a></li>
+        <li {% if '/documentation' in request.path %} class="active"{% endif %}><a href="{% url 'documentations' %}"><i class='bx bx-book-bookmark'></i>Documentation</a></li>
         <li><a href="#"><i class='bx bx-target-lock'></i>Offensive Script</a></li>
         <li {% if '/connectors' in request.path %} class="active"{% endif %}><a href="{% url 'connectors' %}"><i class='bx bx-git-compare'></i>Connector</a></li>
 

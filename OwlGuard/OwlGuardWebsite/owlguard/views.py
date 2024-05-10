@@ -1,10 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Rule, TestingScript, Connector, Reminders, Tags, Logsource, StatusByRule, SPLByRule, HistoryByRule
+from .models import Rule, TestingScript, Connector, Reminders, Tags, Logsource, StatusByRule, SPLByRule, HistoryByRule, InvestigationProcess, HistoryByInvestigationProcess
 from django.db.models import Count, Q
 from django.forms import formset_factory
 from django.utils import timezone
-from .forms import UploadYAMLForm, RuleForm, ConnectorForm, RuleAssociationForm, RuleStatusForm, RuleSPLForm
+from .forms import UploadYAMLForm, RuleForm, ConnectorForm, RuleAssociationForm, RuleStatusForm, RuleSPLForm, DocumentationForm
 from datetime import datetime
 from django.contrib import messages
 import yaml, json, uuid
@@ -704,5 +704,122 @@ def handleConnectorChange(request):
     redirectPage = request.POST.get('previousPage')
     return redirect(redirectPage)
 
+#Documentation
+@login_required
+def documentation(request):
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+    else:
+        allConnector = Connector.objects.all()
+    documentationAll = InvestigationProcess.objects.all().prefetch_related('associatedRule')
+    extractedDocumentInfo = []
+    for item in documentationAll:
+        ruleInfo = list(item.associatedRule.values('id', 'title'))
+        extractedDocumentInfo.append({
+            'id': item.id,
+            'title': item.title,
+            'creation_date': item.creation_date.strftime("%b. %d, %Y"),
+            'author': item.author,
+            'rules': ruleInfo,
+            'lastModified': item.modified,
+            'lastModifiedBy': item.modified_by
+        })
+    templateArgs = {"extractedDocumentInfo": extractedDocumentInfo}
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/documentations/documentations.html', templateArgs)
+
+def add_documentation(request):
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+    else:
+        allConnector = Connector.objects.all()
+    if request.method == 'POST':
+        form = DocumentationForm(request.POST)
+        if form.is_valid():
+            instance = form.save(commit=False)
+            instance.creation_date = timezone.now()
+            instance.author = request.user
+            instance.save()
+            instance.associatedRule.set(form.data.getlist('associatedRule[]'))
+            instance.save()
+            return redirect('documentations')
+    else:
+        form = DocumentationForm()
+    templateArgs = {'form': form}
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/documentations/add_documentation.html', templateArgs)
+
+@login_required
+def edit_documentation(request, id):
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+    else:
+        allConnector = Connector.objects.all()
+    documentation = InvestigationProcess.objects.get(id=id)
+    if request.method == 'POST':
+        form = DocumentationForm(request.POST, instance=documentation)
+        if form.is_valid():
+            res = saveDocuHistory(documentation)
+            instance = form.save(commit=False)
+            instance.modified = timezone.now()
+            instance.modified_by = request.user
+            instance.save()
+            instance.associatedRule.set(form.data.getlist('associatedRule[]'))
+            instance.save()
+            return redirect('docuById', id)
+    else:
+        form = DocumentationForm(instance=documentation)
+    templateArgs = {'form': form}
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/documentations/edit_documentation.html', templateArgs)
+
+def docuById(request, id):
+    documentation = get_object_or_404(InvestigationProcess, pk=id)
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+    else:
+        allConnector = Connector.objects.all()
+    documentation.creation_date=documentation.creation_date.strftime("%b. %d, %Y")
+    if documentation.modified:
+        documentation.modified=documentation.modified.strftime("%b. %d, %Y")
+    templateArgs = {'documentation_details': documentation}
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/documentations/documentation_details.html', templateArgs)
+
+@login_required
+def delDocuById(request, id):
+    docu = get_object_or_404(InvestigationProcess, pk=id)
+    docu.delete()
+    return redirect('documentations')  
+
+@login_required
+def docuHistoryById(request, id):
+    documentation = get_object_or_404(InvestigationProcess, pk=id)
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+    else:
+        allConnector = Connector.objects.all()
+    templateArgs = {'documentation_details': documentation}
+    allHistory = HistoryByInvestigationProcess.objects.filter(investigationProcess=documentation)
+    cnt=0
+    templateArgs['historicData'] = []
+    for history in allHistory:
+        templateArgs['historicData'].append([f"history_{cnt}", history])
+        cnt += 1
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/documentations/documentation_history.html', templateArgs)
+
+# Here if you want to test something using the /test endpoint
 def test(request):
     pass
+

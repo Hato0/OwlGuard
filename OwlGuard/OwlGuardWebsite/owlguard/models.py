@@ -60,14 +60,6 @@ class Connector(models.Model):
     
     def __str__(self):
         return self.title 
-class InvestigationProcess(models.Model):
-    title = models.CharField(max_length=255)
-    steps = ArrayField(models.TextField(blank=True))
-    class Meta:
-            ordering = ['id']
-    
-    def __str__(self):
-        return self.title   
 class Logsource(models.Model):
     title = models.CharField(max_length=255)
     type = models.CharField(max_length=255)
@@ -78,6 +70,22 @@ class Logsource(models.Model):
     def __str__(self):
         return self.title   
 
+class InvestigationProcess(models.Model):
+    title = models.CharField(max_length=255)
+    goal = models.TextField(blank=True)
+    investigationsteps = models.TextField(blank=True)
+    remediationsteps = models.TextField(blank=True)
+    associatedRule = models.ManyToManyField('Rule', blank=True, related_name='investigation_process_id')
+    creation_date = models.DateTimeField()
+    author = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="documentation_created")
+    modified = models.DateTimeField(blank=True, null=True)
+    modified_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="documentation_updated")
+    class Meta:
+            ordering = ['id']
+    
+    def __str__(self):
+        return self.title   
+    
 class Rule(models.Model):
     title = models.CharField(max_length=255, unique=True)
     reference_id = models.CharField(max_length=40)
@@ -94,7 +102,6 @@ class Rule(models.Model):
     falsepositives = models.TextField()
     level = models.CharField(max_length=255)
     testing_script_id = models.ManyToManyField(TestingScript)
-    investigation_process_id = models.ManyToManyField(InvestigationProcess)
     associatedConnector = models.ManyToManyField(Connector, related_name='rules', blank=True)
     toUpdate = models.BooleanField(blank=True, null=True)
     raw = models.FileField(upload_to='owlguard/sigmaYAML/')
@@ -147,4 +154,21 @@ class HistoryByRule(models.Model):
         ordering = ['import_at']
 
      def __str__(self):
+        return self.title   
+
+class HistoryByInvestigationProcess(models.Model):
+    investigationProcess = models.ForeignKey(InvestigationProcess, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    goal = models.TextField(blank=True)
+    investigationsteps = models.TextField(blank=True)
+    remediationsteps = models.TextField(blank=True)
+    associatedRule = models.ManyToManyField('Rule', blank=True, related_name='investigation_process_id_history')
+    creation_date = models.DateTimeField()
+    author = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="documentation_created_history")
+    modified = models.DateTimeField(blank=True, null=True)
+    modified_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="documentation_updated_history")
+    class Meta:
+            ordering = ['id']
+    
+    def __str__(self):
         return self.title   
