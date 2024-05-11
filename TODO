@@ -1,2 +1,0 @@
-- create a requirement file
-    - include: sigma plugin install splunk

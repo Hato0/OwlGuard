@@ -1,4 +1,4 @@
-from .models import Rule, StatusByRule, HistoryByRule, SPLByRule, InvestigationProcess, HistoryByInvestigationProcess
+from .models import Rule, StatusByRule, HistoryByRule, SPLByRule, InvestigationProcess, HistoryByInvestigationProcess, TestingScript, HistoryByTestingScript
 
 def saveRuleHistory(rule):
     try:
@@ -72,6 +72,30 @@ def saveDocuHistory(documentation):
                 rules.append(item['id'])
             docHistory.associatedRule.set(rules)
             docHistory.save()
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
+def saveScriptHistory(script):
+    try:
+        scripts = TestingScript.objects.filter(id=script.id).all().prefetch_related('associatedRule')
+        for scriptData in scripts:
+            scriptHistory = HistoryByTestingScript.objects.create(
+                                testingScript = scriptData,
+                                title = scriptData.title,
+                                type = scriptData.type,
+                                script = scriptData.script,
+                                creation_date = scriptData.creation_date,
+                                author = scriptData.author,
+                                modified = scriptData.modified,
+                                modified_by = scriptData.modified_by,
+                            )    
+            rules = [] 
+            for item in scriptData.associatedRule.values('id'):
+                rules.append(item['id'])
+            scriptHistory.associatedRule.set(rules)
+            scriptHistory.save()
         return True
     except Exception as e:
         print(e)

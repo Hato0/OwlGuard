@@ -1,10 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Rule, TestingScript, Connector, Reminders, Tags, Logsource, StatusByRule, SPLByRule, HistoryByRule, InvestigationProcess, HistoryByInvestigationProcess
+from .models import Rule, TestingScript, Connector, Reminders, Tags, Logsource, StatusByRule, SPLByRule, HistoryByRule, InvestigationProcess, HistoryByInvestigationProcess, TestingScript, HistoryByTestingScript
 from django.db.models import Count, Q
 from django.forms import formset_factory
 from django.utils import timezone
-from .forms import UploadYAMLForm, RuleForm, ConnectorForm, RuleAssociationForm, RuleStatusForm, RuleSPLForm, DocumentationForm
+from .forms import UploadYAMLForm, RuleForm, ConnectorForm, RuleAssociationForm, RuleStatusForm, RuleSPLForm, DocumentationForm, ScriptForm
 from datetime import datetime
 from django.contrib import messages
 import yaml, json, uuid
@@ -818,6 +818,121 @@ def docuHistoryById(request, id):
     templateArgs["currentConnector"] = currentConnector
     templateArgs["allConnector"] = allConnector
     return render(request, 'owlguard/documentations/documentation_history.html', templateArgs)
+
+#Script
+@login_required
+def script(request):
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+    else:
+        allConnector = Connector.objects.all()
+    documentationAll = TestingScript.objects.all().prefetch_related('associatedRule')
+    extractedScriptInfo = []
+    for item in documentationAll:
+        ruleInfo = list(item.associatedRule.values('id', 'title'))
+        extractedScriptInfo.append({
+            'id': item.id,
+            'title': item.title,
+            'creation_date': item.creation_date.strftime("%b. %d, %Y"),
+            'author': item.author,
+            'rules': ruleInfo,
+            'lastModified': item.modified,
+            'lastModifiedBy': item.modified_by
+        })
+    templateArgs = {"extractedScriptInfo": extractedScriptInfo}
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/scripts/scripts.html', templateArgs)
+
+def add_script(request):
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+    else:
+        allConnector = Connector.objects.all()
+    if request.method == 'POST':
+        form = ScriptForm(request.POST)
+        if form.is_valid():
+            instance = form.save(commit=False)
+            instance.creation_date = timezone.now()
+            instance.author = request.user
+            instance.save()
+            instance.associatedRule.set(form.data.getlist('associatedRule[]'))
+            instance.save()
+            return redirect('scripts')
+    else:
+        form = ScriptForm()
+    templateArgs = {'form': form}
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/scripts/add_scripts.html', templateArgs)
+
+@login_required
+def edit_script(request, id):
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+    else:
+        allConnector = Connector.objects.all()
+    script = TestingScript.objects.get(id=id)
+    if request.method == 'POST':
+        form = ScriptForm(request.POST, instance=script)
+        if form.is_valid():
+            res = saveScriptHistory(script)
+            instance = form.save(commit=False)
+            instance.modified = timezone.now()
+            instance.modified_by = request.user
+            instance.save()
+            instance.associatedRule.set(form.data.getlist('associatedRule[]'))
+            instance.save()
+            return redirect('scriptById', id)
+    else:
+        form = ScriptForm(instance=script)
+    templateArgs = {'form': form}
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/scripts/edit_scripts.html', templateArgs)
+
+def scriptById(request, id):
+    script = get_object_or_404(TestingScript, pk=id)
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+    else:
+        allConnector = Connector.objects.all()
+    script.creation_date=script.creation_date.strftime("%b. %d, %Y")
+    if script.modified:
+        script.modified=script.modified.strftime("%b. %d, %Y")
+    templateArgs = {'script_details': script}
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/scripts/scripts_details.html', templateArgs)
+
+@login_required
+def delScriptById(request, id):
+    script = get_object_or_404(TestingScript, pk=id)
+    script.delete()
+    return redirect('scripts')  
+
+@login_required
+def scriptHistoryById(request, id):
+    script = get_object_or_404(TestingScript, pk=id)
+    currentConnector = Connector.objects.filter(active=True).first()
+    if currentConnector:
+        allConnector = Connector.objects.all().exclude(id=currentConnector.id)
+    else:
+        allConnector = Connector.objects.all()
+    templateArgs = {'script_details': script}
+    allHistory = HistoryByTestingScript.objects.filter(testingScript=script)
+    cnt=0
+    templateArgs['historicData'] = []
+    for history in allHistory:
+        templateArgs['historicData'].append([f"history_{cnt}", history])
+        cnt += 1
+    templateArgs["currentConnector"] = currentConnector
+    templateArgs["allConnector"] = allConnector
+    return render(request, 'owlguard/scripts/scripts_history.html', templateArgs)
 
 # Here if you want to test something using the /test endpoint
 def test(request):

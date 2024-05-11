@@ -39,10 +39,14 @@ function rowClicked(ruleId) {
 }
 
 function rowClickedDocu(docuId) {
-    // Redirect to a new page with the docu ID
-        window.location.href = '/documentation/' + docuId;
-    }
+// Redirect to a new page with the docu ID
+    window.location.href = '/documentation/' + docuId;
+}
 
+function rowClickedScript(scriptId) {
+// Redirect to a new page with the script ID
+    window.location.href = '/script/' + scriptId;
+}
 
 function updateFileCount(input) {
     var count = input.files.length;

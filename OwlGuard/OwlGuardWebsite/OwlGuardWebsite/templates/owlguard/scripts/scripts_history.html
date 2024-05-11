@@ -33,17 +33,16 @@
         <div id="Current" style="display: none">
             <ul class="rule-details">
                 <li>
-                    <h3>{{ documentation_details.title }}</h3>
-                    <p>Creation: <span>{{ documentation_details.creation_date }} ({{ documentation_details.author }})</span></p>
-                    <p>Modified: <span>{% if documentation_details.modified %}{{ documentation_details.modified }} ({{ documentation_details.modified_by }}){% else %}Never modified{% endif %}</span></p>           
-                    <p>Goal: <span>{{ documentation_details.goal }}</span></p>
+                    <h3>{{ script_details.title }}</h3>
+                    <p>Creation: <span>{{ script_details.creation_date }} ({{ script_details.author }})</span></p>
+                    <p>Modified: <span>{% if script_details.modified %}{{ script_details.modified }} ({{ script_details.modified_by }}){% else %}Never modified{% endif %}</span></p>           
+                    <p>Type: <span>{{ script_details.type }}</span></p>
                     <div class="detection-display">
-                        <p>Investigation steps:<br><span>{{ documentation_details.investigationsteps }}<span></p>
-                        <p>Remediation steps:<br><span>{{ documentation_details.remediationsteps }}<span></p>
+                        <p>Script:<br><span>{{ script_details.script }}<span></p>
                     </div>
                     <p>Associated rules: 
                         <ul>
-                            {% for rule in documentation_details.associatedRule.all %}
+                            {% for rule in script_details.associatedRule.all %}
                                 <li><a href="{% url 'rulesById' rule.id %}" target="_blank">{{ rule }}</a></li>
                             {% endfor %}
                         </ul>
@@ -58,10 +57,9 @@
                         <h3>{{ item.1.title }}</h3>
                         <p>Creation: <span>{{ item.1.creation_date }} ({{ item.1.author }})</span></p>
                         <p>Modified: <span>{% if item.1.modified %}{{ item.1.modified }} ({{ item.1.modified_by }}){% else %}Never modified{% endif %}</span></p>           
-                        <p>Goal: <span>{{ item.1.goal }}</span></p>
+                        <p>Type: <span>{{ item.1.type }}</span></p>
                         <div class="detection-display">
-                            <p>Investigation steps:<br><span>{{ item.1.investigationsteps }}<span></p>
-                            <p>Remediation steps:<br><span>{{ item.1.remediationsteps }}<span></p>
+                            <p>Script:<br><span>{{ item.1.script }}<span></p>
                         </div>
                         <p>Associated rules: 
                             <ul>

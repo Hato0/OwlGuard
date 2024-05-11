@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static%}
+{% block title %}Scripts{% endblock title %}
+{% block content %}
+<div class="header">
+    <div class="left">
+        <h1>Scripts</h1>
+        <ul class="breadcrumb">
+            <li><a href="#">Scripts</a></li>
+            <li class="menu-separator">/</li>
+            <li><a href="#" class="active">Scripts</a></li>
+        </ul>
+    </div>
+    <div style="display: flex">
+        <a href="{% url 'ScriptHistoryById' script_details.id %}" class="report" style="margin-right: 10px;">
+            <i class='bx bx-history'></i>
+            <span>History</span>
+        </a>
+        <a href="{% url 'editScript' script_details.id %}" class="report">
+            <i class='bx bx-edit'></i>
+            <span>Edit</span>
+        </a>
+        <a href="{% url 'delScriptById' script_details.id %}" class="report" style="margin-left: 10px; background-color: var(--medium-danger)">
+            <i class='bx bxs-message-square-x'></i>
+            <span>Delete</span>
+        </a>
+    </div>
+</div>
+<div class="container center" style='margin-top: 20px;'>
+    <ul class="rule-details">
+        <li>
+            <h3>{{ script_details.title }}</h3>
+            <p>Creation: <span>{{ script_details.creation_date }} ({{ script_details.author }})</span></p>
+            <p>Modified: <span>{% if script_details.modified %}{{ script_details.modified }} ({{ script_details.modified_by }}){% else %}Never modified{% endif %}</span></p>           
+            <p>Type: <span>{{ script_details.type }}</span></p>
+            <div class="detection-display">
+                <p>Script:<br><span>{{ script_details.script }}<span></p>
+            </div>
+            <p>Associated rules: 
+                <ul>
+                    {% for rule in script_details.associatedRule.all %}
+                        <li><a href="{% url 'rulesById' rule.id %}" target="_blank">{{ rule }}</a></li>
+                    {% endfor %}
+                </ul>
+            </p>
+        </li>
+    </ul>
+</div>
+{% endblock content %}

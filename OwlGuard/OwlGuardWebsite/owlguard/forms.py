@@ -1,5 +1,5 @@
 from django import forms
-from .models import Rule, Connector, StatusByRule, SPLByRule, InvestigationProcess
+from .models import Rule, Connector, StatusByRule, SPLByRule, InvestigationProcess, TestingScript
 
 class UploadYAMLForm(forms.Form):
     yaml_files = forms.FileField(label='Select YAML file(s)', required=False)
@@ -87,4 +87,17 @@ class DocumentationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(DocumentationForm, self).__init__(*args, **kwargs)
+        self.fields['title'].widget.attrs.update({'class': 'form-input'})
+
+class ScriptForm(forms.ModelForm):
+    class Meta:
+        model = TestingScript
+        types = {'placeholder': '-- Chose from the available list --', 'powershell': 'Powershell', 'bash': 'Bash'}
+        fields = ('title', 'type', 'script', 'associatedRule')
+        widgets = {
+            'type': forms.Select(choices=types),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super(ScriptForm, self).__init__(*args, **kwargs)
         self.fields['title'].widget.attrs.update({'class': 'form-input'})

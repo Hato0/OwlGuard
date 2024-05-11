@@ -37,7 +37,13 @@ class Tags(models.Model):
     
 class TestingScript(models.Model):
     title = models.CharField(max_length=255)
+    type = models.CharField(max_length=255)
     script = models.TextField()
+    associatedRule = models.ManyToManyField('Rule', blank=True, related_name='testing_script_id')
+    creation_date = models.DateTimeField()
+    author = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="script_created")
+    modified = models.DateTimeField(blank=True, null=True)
+    modified_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="script_updated")
     class Meta:
             ordering = ['id']
     
@@ -101,7 +107,6 @@ class Rule(models.Model):
     detection = models.JSONField(blank=True, null=True)
     falsepositives = models.TextField()
     level = models.CharField(max_length=255)
-    testing_script_id = models.ManyToManyField(TestingScript)
     associatedConnector = models.ManyToManyField(Connector, related_name='rules', blank=True)
     toUpdate = models.BooleanField(blank=True, null=True)
     raw = models.FileField(upload_to='owlguard/sigmaYAML/')
@@ -172,3 +177,19 @@ class HistoryByInvestigationProcess(models.Model):
     
     def __str__(self):
         return self.title   
+    
+class HistoryByTestingScript(models.Model):
+    testingScript = models.ForeignKey(TestingScript, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    type = models.CharField(max_length=255)
+    script = models.TextField()
+    associatedRule = models.ManyToManyField('Rule', blank=True, related_name='testing_script_id_history')
+    creation_date = models.DateTimeField()
+    author = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="script_created_history")
+    modified = models.DateTimeField(blank=True, null=True)
+    modified_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="script_updated_history")
+    class Meta:
+            ordering = ['id']
+    
+    def __str__(self):
+        return self.title 

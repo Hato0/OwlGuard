@@ -26,7 +26,12 @@ urlpatterns = [
     path('documentation/<int:id>/edit', views.edit_documentation, name="editDocumentation"),
     path('documentation/<int:id>/delete', views.delDocuById, name="delDocuById"),
     path('documentation/<int:id>/history', views.docuHistoryById, name="docuHistoryById"),
-
+    path('script', views.script, name="scripts"),
+    path('script/create', views.add_script, name="createScript"),
+    path('script/<int:id>', views.scriptById, name="scriptById"),
+    path('script/<int:id>/edit', views.edit_script, name="editScript"),
+    path('script/<int:id>/delete', views.delScriptById, name="delScriptById"),
+    path('script/<int:id>/history', views.scriptHistoryById, name="ScriptHistoryById"),
     #Uncomment if you need to enable the test endpoint
     #path('test', views.test, name="test"),
 

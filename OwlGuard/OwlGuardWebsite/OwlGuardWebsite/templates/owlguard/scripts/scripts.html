@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Scripts{% endblock title %}
+{% block content %}
+<div class="header">
+    <div class="left">
+        <h1>Scripts</h1>
+        <ul class="breadcrumb">
+            <li><a href="#">Scripts</a></li>
+            <li class="menu-separator">/</li>
+            <li><a href="#" class="active">Dashboard</a></li>
+        </ul>
+    </div>
+    <div style="display: flex">
+        <a href="{% url 'createScript' %}" class="report" style="margin-right: 10px;">
+            <i class='bx bx-add-to-queue'></i>
+            <span>Create a script</span>
+        </a>
+    </div>
+</div>
+<div class="bottom-data">
+    <div class="documentations">
+        <div class="header">
+            <i class='bx bx-book-open'></i>
+            <h3>Scripts</h3>
+            <div class="filter-info">
+            </div>
+            <i class='bx bx-filter'></i>
+            <i class='bx bx-search'></i>
+        </div>
+        <table id="rulesTable">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Creation Date</th>
+                    <th>Author</th>
+                    <th>Last modified</th>
+                    <th>Rules</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if extractedScriptInfo|length > 0 %}
+                {% for script in extractedScriptInfo %}
+                <tr onclick="rowClickedScript('{{ script.id }}')">
+                    <td style="display:revert;">{{ script.title }}</td>
+                    <td class="date-cell">{{ script.creation_date }}</td>
+                    <td class="center-cell">{{ script.author }}</td>
+                    <td class="center-cell">{{ script.creation_date }} ({{ script.author }})</td> 
+                    <td class="center-cell">{% for rule in script.rules %}<a href="#" class="tag" onclick="filterByTag('{{ rule.title }}'); event.stopPropagation();">{{ rule.title }}</a>{% endfor %}</td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="5" class="no-rule-info">
+                        <i class='bx bx-info-circle'></i>
+                        <span>You did not create any script yet! <a href="{% url 'createScript' %}" style="color: var(--dark)">Create one?</a></span>
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock content %}
