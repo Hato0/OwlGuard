@@ -4,7 +4,7 @@
 <br />
 <div align="center">
     <a href="https://github.com/Hato0/OwlGuard">
-    <img src="OwlGuardWebsite/OwlGuardWebsite/static/img/logo.png" alt="Logo" width=10%>
+    <img src="OwlGuard/OwlGuardWebsite/OwlGuardWebsite/static/img/logo.png" alt="Logo" width=10%>
   </a>
 
 <h3 align="center">OwlGuard</h3>
@@ -116,3 +116,4 @@ hato0 - hato0@protonmail.ch
 Project Link: [https://github.com/Hato0/OwlGuard](https://github.com/Hato0/OwlGuard)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
+
